@@ -13,6 +13,7 @@
 
 #include "mcrl2/atermpp/aterm.h"
 #include "mcrl2/atermpp/aterm_int.h"
+#include "mcrl2/atermpp/aterm_io.h"
 #include "mcrl2/atermpp/aterm_list.h"
 
 
@@ -46,7 +47,7 @@ const function_symbol& function_symbol_c()
   return function_symbol_c;
 }
 
-/// \brief A proto-CFLOBDD term encodes boolean functions.
+/// \brief A proto-CFLOBDD term ...TODO...
 class aterm_proto_cflobdd: public aterm
 {
   public:
@@ -55,7 +56,7 @@ class aterm_proto_cflobdd: public aterm
     aterm_proto_cflobdd(const aterm& term)
       : aterm(term)
     {
-      assert(is_proto_cflobdd(term));
+      assert(is_proto_cflobdd());
     }
 
     /// \brief Constant proto-CFLOBDD I or V.
@@ -63,55 +64,62 @@ class aterm_proto_cflobdd: public aterm
     aterm_proto_cflobdd(const function_symbol& function_symbol)
       : aterm(function_symbol)
     {
-      // Function symbol must be one of I or V
-      assert(function_symbol == function_symbol_i() || function_symbol == function_symbol_v());
+      assert(is_proto_cflobdd());
     }
 
     /// \brief Proto-CFLOBDD inductive case (L, [L_0, ..., L_{n-1}], m).
     /// \param c The proto-CFLOBDD L
-    /// \param cvs The list of proto-CFLOBDDs [L_0, ..., L_{n-1}] and mapping m merged into a vector of pairs.
-    ///   Each proto-CFLOBDD L_i is paired with a vector of mapping result values v_i such that
-    ///   L_i.out_degree = v_i.size() and v_i[j] = m(i,j).
+    /// \param cvs The list of proto-CFLOBDDs [L_0, ..., L_{n-1}] and mapping m merged into a list of pairs.
+    ///   Each proto-CFLOBDD L_i is paired with a list of mapping result values v_i such that
+    ///   L_i.out_degree() = v_i.size() and v_i[j] = m(i,j).
     aterm_proto_cflobdd(const aterm_proto_cflobdd& c, const aterm_list& cvs):
-      aterm(function_symbol_c(), c, cvs)/**,
-      level(aterm_int(c.level.value() + 1)),
-      out_degree(std::accumulate(
-        vss.begin(),
-        vss.end(),
-        0,
-        [](const aterm& max, const aterm_list& vs) {
-          return std::max(max, *std::max_element(vs.begin(), vs.end()));
-        }
-      ))*/
+      aterm(function_symbol_c(), c, cvs)
     {
-      // The out degree of the first proto-CFLOBDD must match the number of remaining proto-CFLOBDDs
-      // assert(c.out_degree.value() == cs.size() == vss.size());
-
-      for (const aterm& cv : cvs) {
-        const aterm_pair& x = down_cast<aterm_pair>(cv);
-        // if (x.function() == function_symbol("C", 3)) {
-        //   assert(x.level > 1);
-        // }
-        // assert(typeid(x) == typeid(aterm_proto_cflobdd));
-        // // All proto-CFLOBDs must have the same level
-        // assert(c.level == x.level);
-
-        // // The out degree of each proto-CFLOBDD L_i must match the amount of corresponding return values
-        // assert(get<0>(cv).out_degree.value() == get<1>(cv).size());
-      }
-
-      // TODO: Actually store c and cvs in some way. Possibly in separate class?
+      assert(is_proto_cflobdd());
     }
 
-    /// \brief Check if a term is a proto-CFLOBDD.
-    /// \param term The term to check
-    /// \return Whether the term is a proto-CFLOBDD
-    size_t is_proto_cflobdd(const aterm& term) const noexcept
+    /// \brief Check if this term is a proto-CFLOBDD.
+    /// \return Whether this term is a proto-CFLOBDD
+    size_t is_proto_cflobdd() const noexcept
     {
-      // TODO: Strict check on arguments as well?
-      return term.function() == function_symbol_i()
-        || term.function() == function_symbol_v()
-        || term.function() == function_symbol_c();
+      if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
+      {
+        // Constant proto-CFLOBDDs I and V have no arguments to check
+        return 1;
+      }
+      else if (this->function() == function_symbol_c())
+      {
+        // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m), see constructors for L_i and m merge specification
+        const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+        const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
+
+        // The out degree of the first proto-CFLOBDD must match the number of remaining proto-CFLOBDDs
+        if (c.out_degree() != cvs.size()) return 0;
+
+        for (const aterm& cv : cvs)
+        {
+          const aterm_pair& pair = down_cast<aterm_pair>(cv);
+          const aterm_proto_cflobdd& c_i = down_cast<aterm_proto_cflobdd>(pair.first());
+          const aterm_list& values = down_cast<aterm_list>(pair.second());
+
+          // All proto-CFLOBDDs must have the same level
+          if (c.level() != c_i.level()) return 0;
+
+          // The out degree of each proto-CFLOBDD L_i must match the amount of corresponding return values
+          if (c_i.out_degree() != values.size()) return 0;
+        }
+
+        // Each proto-CFLOBDDs L and L_i must also be validated
+        // This is already done recursively in debug mode via the downcasts and the corresponding assert
+        // Consider adding explicit recursive calls if this function is ever used outside asserts
+
+        return 1;
+      }
+      else
+      {
+        // The function symbol does not match any known proto-CFLOBDD
+        return 0;
+      }
     }
 
     /// \brief Get the level of the proto-CFLOBDD.
@@ -159,7 +167,7 @@ class aterm_proto_cflobdd: public aterm
         for (const aterm& cv : cvs)
         {
           const aterm_pair& pair = down_cast<aterm_pair>(cv);
-          const aterm_list& values = down_cast<aterm_list>(pair.right());
+          const aterm_list& values = down_cast<aterm_list>(pair.second());
           for (const aterm& value : values)
           {
             max = std::max(max, down_cast<aterm_int>(value).value());
@@ -200,7 +208,41 @@ class aterm_proto_cflobdd_c: public aterm_proto_cflobdd
     {}
 };
 
+void test(aterm_proto_cflobdd c)
+{
+  std::cout << "Proto-CFLOBDD: " << c << "\n";
+
+  const size_t& level = c.level();
+  std::cout << "Level: " << level << "\n";
+
+  const size_t& out_degree = c.out_degree();
+  std::cout << "Out degree: " << out_degree << "\n\n";
+}
+
 int main()
 {
+  const aterm_proto_cflobdd_i i;
+  test(i);
+
+  const aterm_proto_cflobdd_v v;
+  test(v);
+
+  aterm_list p;
+  p.push_front(aterm_pair(v, read_list_from_string("[1,0]")));
+  p.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
+  const aterm_proto_cflobdd& c = aterm_proto_cflobdd(v,p);
+  test(c);
+
+  aterm_list q;
+  q.push_front(aterm_pair(i, read_list_from_string("[0]")));
+  const aterm_proto_cflobdd& d = aterm_proto_cflobdd(i, q);
+  test(d);
+
+  aterm_list r;
+  r.push_front(aterm_pair(c, read_list_from_string("[1,0]")));
+  r.push_front(aterm_pair(d, read_list_from_string("[0]")));
+  const aterm_proto_cflobdd& e = aterm_proto_cflobdd(c, r);
+  test(d);
+
   return 0;
 }

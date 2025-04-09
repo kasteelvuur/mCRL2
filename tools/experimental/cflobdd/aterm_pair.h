@@ -33,10 +33,10 @@ public:
   {}
 
   /// \brief Constructs a pair term from two terms.
-  /// \param left The left term of the pair.
-  /// \param right The right term of the pair.
-  explicit aterm_pair(const aterm& left, const aterm& right)
-    : aterm(function_symbol_pair(), left, right)
+  /// \param first The first term of the pair.
+  /// \param second The second term of the pair.
+  explicit aterm_pair(const aterm& first, const aterm& second)
+    : aterm(function_symbol_pair(), first, second)
   {}
 
   /// \brief Constructs a pair term from an aterm.
@@ -47,16 +47,16 @@ public:
     assert(t.function() == function_symbol_pair() || !defined());
   }
 
-  /// \brief Provide the left term stored in the pair. 
-  /// \return The left term.
-  aterm left() const noexcept
+  /// \brief Provide the first term stored in the pair. 
+  /// \return The first term.
+  aterm first() const noexcept
   {
     return (*this)[0];
   }
 
-  /// \brief Provide the right term stored in the pair. 
-  /// \return The right term.
-  aterm right() const noexcept
+  /// \brief Provide the second term stored in the pair. 
+  /// \return The second term.
+  aterm second() const noexcept
   {
     return (*this)[1];
   }
