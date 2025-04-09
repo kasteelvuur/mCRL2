@@ -1,5 +1,6 @@
 set(MCRL2_TOOLS
-  besconvert  
+  besconvert
+  cflobdd
   lps2pres
   lpscleave
   lpscombine
