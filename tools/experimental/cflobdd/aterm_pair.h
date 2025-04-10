@@ -10,28 +10,29 @@
 /// \brief Term containing two terms.
 
 
+#ifndef MCRL2_ATERMPP_ATERM_PAIR_H
+#define MCRL2_ATERMPP_ATERM_PAIR_H
+
+
 #include "mcrl2/atermpp/aterm.h"
 
 
-using namespace atermpp;
+namespace atermpp
+{
 
 /// \brief Get the pair term function symbol.
 /// \return The pair term function symbol
 inline
 const function_symbol& function_symbol_pair()
 {
-    static function_symbol function_symbol_pair = function_symbol("pair", 2);
-    return function_symbol_pair;
+  static function_symbol function_symbol_pair = function_symbol("pair", 2);
+  return function_symbol_pair;
 }
 
 /// \brief A pair term stores two terms. It carries these as arguments.
 class aterm_pair : public aterm
 {
 public:
-  /// \brief Default constructor.
-  aterm_pair() noexcept
-  {}
-
   /// \brief Constructs a pair term from two terms.
   /// \param first The first term of the pair.
   /// \param second The second term of the pair.
@@ -42,7 +43,7 @@ public:
   /// \brief Constructs a pair term from an aterm.
   /// \param t The aterm to cast
   explicit aterm_pair(const aterm& t)
-   : aterm(t)
+    : aterm(t)
   {
     assert(t.function() == function_symbol_pair() || !defined());
   }
@@ -61,3 +62,7 @@ public:
     return (*this)[1];
   }
 };
+
+} // namespace atermpp
+
+#endif // MCRL2_ATERMPP_ATERM_INT_H
