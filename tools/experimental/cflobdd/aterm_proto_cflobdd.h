@@ -138,8 +138,8 @@ public:
     else if (this->function() == function_symbol_c())
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) is one level higher than its children
-      const aterm_proto_cflobdd& l = down_cast<aterm_proto_cflobdd>((*this)[0]);
-      return l.level() + 1;
+      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+      return c.level() + 1;
     }
     else
     {
@@ -180,6 +180,59 @@ public:
         }
       }
       return max + 1;
+    }
+    else
+    {
+      // This case should never happen
+      assert(false);
+      return 0;
+    }
+  }
+
+  /// \brief Check if this proto-CFLOBDD is reduced.
+  /// \return Whether this proto-CFLOBDD is reduced
+  size_t is_reduced() const noexcept
+  {
+    if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
+    {
+      // Constant proto-CFLOBDDs I and V are always considered reduced
+      return 1;
+    }
+    else if (this->function() == function_symbol_c())
+    {
+      // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m)
+      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+      const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
+
+      // The proto-CFLOBDD L must also be reduced
+      if (!c.is_reduced()) return 0;
+
+      size_t next = 0;
+      for (const aterm& cv : cvs)
+      {
+        const aterm_pair& pair = down_cast<aterm_pair>(cv);
+        const aterm_proto_cflobdd& c_i = down_cast<aterm_proto_cflobdd>(pair.first());
+        const aterm_list& values = down_cast<aterm_list>(pair.second());
+
+        // All proto-CFLOBDDs L_i must also be reduced
+        if (!c_i.is_reduced()) return 0;
+
+        // There may be no duplicates within a single list of return values
+        if (values.size() != as_set(values).size()) return 0;
+
+        // The return values must form a compact extension
+        for (const aterm& v : values)
+        {
+          const size_t& value = down_cast<aterm_int>(v).value();
+          if (value > next) return 0;
+          if (value == next) next++;
+        }
+      }
+
+      // There may be no duplicate pairs
+      if (cvs.size() != as_set(cvs).size()) return 0;
+
+      return 1;
     }
     else
     {
