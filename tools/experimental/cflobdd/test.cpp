@@ -4,6 +4,19 @@
 
 using namespace atermpp;
 
+std::string to_string(std::vector<bool> vec)
+{
+  std::string res = "[";
+  bool first = true;
+  for (const bool& val : vec) {
+    if (!first) res.push_back(',');
+    res.push_back(val ? '1' : '0');
+    first = false;
+  }
+  res.push_back(']');
+  return res;
+}
+
 void test_proto_cflobdd(const aterm_proto_cflobdd& c)
 {
   std::cout << "Proto-CFLOBDD: " << c << "\n";
@@ -15,7 +28,22 @@ void test_proto_cflobdd(const aterm_proto_cflobdd& c)
   std::cout << "Out degree: " << out_degree << "\n";
 
   const size_t& is_reduced = c.is_reduced();
-  std::cout << "Is reduced: " << is_reduced << "\n\n";
+  std::cout << "Is reduced: " << is_reduced << "\n";
+
+  const size_t& letter_count = std::pow(2, level);
+  const size_t& configuration_count = std::pow(2, letter_count);
+  std::vector<bool> sigma (letter_count);
+  for (size_t i = 0; i < configuration_count; i++)
+  {
+    for (size_t j = 0; j < letter_count; j++)
+    {
+      sigma[j] = i & (1 << (letter_count - j - 1));
+    }
+    const size_t& eval = c.evaluate(sigma);
+    std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
+  }
+
+  std::cout << "\n";
 }
 
 void test_cflobdd(const aterm_cflobdd& c)

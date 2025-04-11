@@ -51,7 +51,7 @@ public:
 
   /// \brief Check if this term is a CFLOBDD.
   /// \return Whether this term is a CFLOBDD
-  size_t is_cflobdd() const noexcept
+  bool is_cflobdd() const noexcept
   {
     // The function symbol must match the CFLOBDD function symbol
     if (this->function() != function_symbol_cflobdd()) return 0;
@@ -77,7 +77,7 @@ public:
 
   /// \brief Check if this CFLOBDD is reduced.
   /// \return Whether this CFLOBDD is reduced
-  size_t is_reduced() const noexcept
+  bool is_reduced() const noexcept
   {
     // The result mapping may not contain any duplicates
     const aterm_list& vs = down_cast<aterm_list>((*this)[1]);

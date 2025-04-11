@@ -82,7 +82,7 @@ public:
 
   /// \brief Check if this term is a proto-CFLOBDD.
   /// \return Whether this term is a proto-CFLOBDD
-  size_t is_proto_cflobdd() const noexcept
+  bool is_proto_cflobdd() const noexcept
   {
     if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
     {
@@ -191,7 +191,7 @@ public:
 
   /// \brief Check if this proto-CFLOBDD is reduced.
   /// \return Whether this proto-CFLOBDD is reduced
-  size_t is_reduced() const noexcept
+  bool is_reduced() const noexcept
   {
     if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
     {
@@ -233,6 +233,55 @@ public:
       if (cvs.size() != as_set(cvs).size()) return 0;
 
       return 1;
+    }
+    else
+    {
+      // This case should never happen
+      assert(false);
+      return 0;
+    }
+  }
+
+  /// \brief Evaluate this proto-CFLOBDD.
+  /// \param sigma Proposition letter assignments in order
+  /// \return The result of this proto-CFLOBDD given the proposition letter assignments
+  size_t evaluate(const std::vector<bool>& sigma) const noexcept
+  {
+    // The amount of proposition letters must equal to two to the power of the proto-CFLOBDD's level
+    assert(sigma.size() == std::pow(2, this->level()));
+
+    if (this->function() == function_symbol_i())
+    {
+      // Constant proto-CFLOBDDs I always evaluates to 0
+      return 0;
+    }
+    else if (this->function() == function_symbol_v())
+    {
+      // Constant proto-CFLOBDDs V evaluates to 0 or 1 for the assignment False or True respectively
+      return sigma[0] ? 1 : 0;
+    }
+    else if (this->function() == function_symbol_c())
+    {
+      // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) evaluates inductively
+      // Each call passes half of the proposition letter assignments
+      const size_t& half_size = sigma.size() / 2;
+      const std::vector<bool> split_left(sigma.begin(), sigma.begin() + half_size);
+      const std::vector<bool> split_right(sigma.begin() + half_size, sigma.end());
+
+      // Evaluate proto-CFLOBDD L to determine which proto-CFLOBDD L_i should be used next
+      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+      const size_t& i = c.evaluate(split_left);
+
+      // Evaluate proto-CFLOBDD L_i to determine j for m(i,j)
+      const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
+      const aterm_pair cv = down_cast<aterm_pair>(as_vector(cvs)[i]);
+      const aterm_proto_cflobdd& c_i = down_cast<aterm_proto_cflobdd>(cv.first());
+      const size_t& j = c_i.evaluate(split_right);
+
+      // Return the evaluation m(i,j)
+      const aterm_list& m_i = down_cast<aterm_list>(cv.second());
+      const aterm_int m_ij = down_cast<aterm_int>(as_vector(m_i)[j]);
+      return m_ij.value();
     }
     else
     {
