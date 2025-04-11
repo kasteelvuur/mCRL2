@@ -51,7 +51,23 @@ void test_cflobdd(const aterm_cflobdd& c)
   std::cout << "CFLOBDD: " << c << "\n";
 
   const size_t& is_reduced = c.is_reduced();
-  std::cout << "Is reduced: " << is_reduced << "\n\n";
+  std::cout << "Is reduced: " << is_reduced << "\n";
+
+  const size_t& level = down_cast<aterm_proto_cflobdd>(c[0]).level();
+  const size_t& letter_count = std::pow(2, level);
+  const size_t& configuration_count = std::pow(2, letter_count);
+  std::vector<bool> sigma (letter_count);
+  for (size_t i = 0; i < configuration_count; i++)
+  {
+    for (size_t j = 0; j < letter_count; j++)
+    {
+      sigma[j] = i & (1 << (letter_count - j - 1));
+    }
+    const size_t& eval = c.evaluate(sigma);
+    std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
+  }
+
+  std::cout << "\n";
 }
 
 int main()

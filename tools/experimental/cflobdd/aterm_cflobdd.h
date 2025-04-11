@@ -89,6 +89,21 @@ public:
 
     return 1;
   }
+
+  /// \brief Evaluate this CFLOBDD.
+  /// \param sigma Proposition letter assignments in order
+  /// \return The result of this CFLOBDD given the proposition letter assignments
+  size_t evaluate(const std::vector<bool>& sigma) const noexcept
+  {
+    // Evaluate the proto-CFLOBDD to determine which result mapping value should be used
+    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    const size_t& x = c.evaluate(sigma);
+
+    // Return the correspondin result mapping values
+    const aterm_list& vs = down_cast<aterm_list>((*this)[1]);
+    const aterm_int v = down_cast<aterm_int>(as_vector(vs)[x]);
+    return v.value();
+  }
 };
 
 } // namespace atermpp
