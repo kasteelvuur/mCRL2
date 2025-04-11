@@ -20,7 +20,10 @@ void test_proto_cflobdd(const aterm_proto_cflobdd& c)
 
 void test_cflobdd(const aterm_cflobdd& c)
 {
-  std::cout << "CFLOBDD: " << c << "\n\n";
+  std::cout << "CFLOBDD: " << c << "\n";
+
+  const size_t& is_reduced = c.is_reduced();
+  std::cout << "Is reduced: " << is_reduced << "\n\n";
 }
 
 int main()
@@ -75,6 +78,9 @@ int main()
 
   const aterm_cflobdd& y = aterm_cflobdd(e, read_list_from_string("[0,1,1,0]"));
   test_cflobdd(y);
+
+  const aterm_cflobdd& z = aterm_cflobdd(v, read_list_from_string("[0,0]"));
+  test_cflobdd(z);
 
   return 0;
 }

@@ -74,6 +74,21 @@ public:
 
     return 1;
   }
+
+  /// \brief Check if this CFLOBDD is reduced.
+  /// \return Whether this CFLOBDD is reduced
+  size_t is_reduced() const noexcept
+  {
+    // The result mapping may not contain any duplicates
+    const aterm_list& vs = down_cast<aterm_list>((*this)[1]);
+    if (vs.size() != as_set(vs).size()) return 0;
+
+    // The proto-CFLOBDD must also be reduced
+    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    if (!c.is_reduced()) return 0;
+
+    return 1;
+  }
 };
 
 } // namespace atermpp
