@@ -119,12 +119,15 @@ int main()
 
   const aterm_cflobdd& x = aterm_cflobdd(d, read_list_from_string("[1]"));
   test_cflobdd(x);
+  test_cflobdd(x.negate());
 
   const aterm_cflobdd& y = aterm_cflobdd(e, read_list_from_string("[0,1,1,0]"));
   test_cflobdd(y);
+  test_cflobdd(y.negate());
 
   const aterm_cflobdd& z = aterm_cflobdd(v, read_list_from_string("[0,0]"));
   test_cflobdd(z);
+  test_cflobdd(z.negate());
 
   return 0;
 }

@@ -99,10 +99,42 @@ public:
     const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
     const size_t& x = c.evaluate(sigma);
 
-    // Return the correspondin result mapping values
+    // Return the corresponding result mapping value
     const aterm_list& vs = down_cast<aterm_list>((*this)[1]);
     const aterm_int v = down_cast<aterm_int>(as_vector(vs)[x]);
     return v.value();
+  }
+
+  /// \brief Negate this CFLOBDD.
+  /// \return The new CFLOBDD
+  aterm_cflobdd negate() const noexcept
+  {
+    const aterm_list& f = down_cast<aterm_list>((*this)[1]);
+    aterm_list g;
+
+    // Reversely iterate over the result mapping such that we push in the correct order
+    for (reverse_term_list_iterator i = f.rbegin(); i != f.rend(); ++i)
+    {
+      const size_t& value = down_cast<aterm_int>(*i).value();
+      if (value == 0)
+      {
+        // Flip the result mapping from 0 to 1
+        g.push_front(aterm_int(1));
+      }
+      else if (value == 1)
+      {
+        // Flip the result mapping from 1 to 0
+        g.push_front(aterm_int(0));
+      }
+      else
+      {
+        // This case should never happen
+        assert(false);
+        g.push_front(*i);
+      }
+    }
+
+    return aterm_cflobdd((*this)[0], g);
   }
 };
 
