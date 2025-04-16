@@ -136,6 +136,63 @@ public:
 
     return aterm_cflobdd((*this)[0], g);
   }
+
+  /// \brief Combine this CFLOBDD with another by applying a binary operator, ensuring that the evaluation
+  ///   for any assignment equals combining the separate evaluations according to the binary operator.
+  /// \param other The CFLOBDD to combine with
+  /// \param func The binary operator
+  /// \return The new CFLOBDD
+  aterm_cflobdd apply_and_reduce(
+    const aterm_cflobdd& other,
+    aterm_int(*func)(const aterm_int&, const aterm_int&)
+  ) const noexcept
+  {
+    // assert(this->is_reduced() && other.is_reduced());
+    const aterm_proto_cflobdd& c_1 = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    const aterm_proto_cflobdd& c_2 = down_cast<aterm_proto_cflobdd>(other[0]);
+    assert(c_1.level() == c_2.level());
+
+    // Calculate the pair product
+    const aterm_pair& pair_product = c_1.pair_product(c_2);
+    const aterm_proto_cflobdd& product_proto_cflobdd = down_cast<aterm_proto_cflobdd>(pair_product.first());
+    const aterm_list& product_results = down_cast<aterm_list>(pair_product.second());
+
+    // Calculate new result mapping values
+    // Reversely iterate over the result mapping pairs such that we push in the correct order
+    aterm_list combined_results;
+    for (reverse_term_list_iterator i = product_results.rbegin(); i != product_results.rend(); ++i)
+    {
+      const aterm_pair& result_pair = down_cast<aterm_pair>(*i);
+      const aterm_int& value_1 = down_cast<aterm_int>(result_pair.first());
+      const aterm_int& value_2 = down_cast<aterm_int>(result_pair.second());
+      combined_results.push_front(func(value_1, value_2));
+    }
+
+    // Collapse the new result mapping values to get rid of duplicates and reduced mapping violations
+    const aterm_pair& collapsed_results = collapse_classes_leftmost(combined_results);
+    const aterm_list& projected_results = down_cast<aterm_list>(collapsed_results.first());
+    const aterm_list& renumbered_results = down_cast<aterm_list>(collapsed_results.second());
+
+    // Reduce the pair product proto-CFLOBDD according to the renumbered results
+    const aterm_proto_cflobdd& reduced_proto_cflobdd = product_proto_cflobdd.reduce(renumbered_results);
+    assert(reduced_proto_cflobdd.is_reduced());
+
+    return aterm_cflobdd(reduced_proto_cflobdd, projected_results);
+  }
+
+  /// \brief Calculate the conjunction of two CFLOBDDs.
+  /// \param other The CFLOBDD to combine with
+  /// \return The new CFLOBDD
+  aterm_cflobdd operator&&(const aterm_cflobdd& other) const noexcept
+  {
+    return this->apply_and_reduce(
+      other,
+      [](const aterm_int& i, const aterm_int& j) -> aterm_int
+      {
+        return aterm_int(i.value() && j.value());
+      }
+    );
+  }
 };
 
 } // namespace atermpp
