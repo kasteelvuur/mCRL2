@@ -22,31 +22,12 @@
 
 namespace atermpp
 {
-/// \brief Get the constant proto-CFLOBDD I function symbol.
-/// \return The constant proto-CFLOBDD I function symbol
-inline
-const function_symbol& function_symbol_i()
-{
-  static function_symbol function_symbol_i = function_symbol("proto-CFLOBDD-I", 0);
-  return function_symbol_i;
-}
 
-/// \brief Get the constant proto-CFLOBDD V function symbol.
-/// \return The constant proto-CFLOBDD V function symbol
-inline
-const function_symbol& function_symbol_v()
+namespace
 {
-  static function_symbol function_symbol_v = function_symbol("proto-CFLOBDD-V", 0);
-  return function_symbol_v;
-}
-
-/// \brief Get the inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) function symbol.
-/// \return The inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) function symbol
-inline
-const function_symbol& function_symbol_c()
-{
-  static function_symbol function_symbol_c = function_symbol("proto-CFLOBDD-C", 2);
-  return function_symbol_c;
+  global_function_symbol g_proto_cflobdd_i("proto-CFLOBDD-I", 0);
+  global_function_symbol g_proto_cflobdd_v("proto-CFLOBDD-V", 0);
+  global_function_symbol g_proto_cflobdd_c("proto-CFLOBDD-C", 2);
 }
 
 /// \brief Collapse a list of values.
@@ -102,7 +83,7 @@ public:
   ///   Each proto-CFLOBDD L_i is paired with a list of mapping result values v_i such that
   ///   L_i.out_degree() = v_i.size() and v_i[j] = m(i,j).
   aterm_proto_cflobdd(const aterm_proto_cflobdd& c, const aterm_list& cvs)
-    : aterm(function_symbol_c(), c, cvs)
+    : aterm(g_proto_cflobdd_c, c, cvs)
   {
     assert(is_proto_cflobdd());
   }
@@ -111,12 +92,12 @@ public:
   /// \return Whether this term is a proto-CFLOBDD
   bool is_proto_cflobdd() const noexcept
   {
-    if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
+    if (this->function() == g_proto_cflobdd_i || this->function() == g_proto_cflobdd_v)
     {
       // Constant proto-CFLOBDDs I and V have no arguments to check
       return 1;
     }
-    else if (this->function() == function_symbol_c())
+    else if (this->function() == g_proto_cflobdd_c)
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m), see constructors for L_i and m merge specification
       const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
@@ -155,12 +136,12 @@ public:
   /// \return Whether this proto-CFLOBDD is reduced
   bool is_reduced() const noexcept
   {
-    if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
+    if (this->function() == g_proto_cflobdd_i || this->function() == g_proto_cflobdd_v)
     {
       // Constant proto-CFLOBDDs I and V are always considered reduced
       return 1;
     }
-    else if (this->function() == function_symbol_c())
+    else if (this->function() == g_proto_cflobdd_c)
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m)
       const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
@@ -210,12 +191,12 @@ public:
   /// \return The level of the proto-CFLOBDD
   size_t level() const noexcept
   {
-    if (this->function() == function_symbol_i() || this->function() == function_symbol_v())
+    if (this->function() == g_proto_cflobdd_i || this->function() == g_proto_cflobdd_v)
     {
       // Constant proto-CFLOBDDs I and V have level 0
       return 0;
     }
-    else if (this->function() == function_symbol_c())
+    else if (this->function() == g_proto_cflobdd_c)
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) is one level higher than its children
       const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
@@ -235,17 +216,17 @@ public:
   /// \return The out degree of the proto-CFLOBDD
   size_t out_degree() const noexcept
   {
-    if (this->function() == function_symbol_i())
+    if (this->function() == g_proto_cflobdd_i)
     {
       // Constant proto-CFLOBDDs I has out degree 1
       return 1;
     }
-    else if (this->function() == function_symbol_v())
+    else if (this->function() == g_proto_cflobdd_v)
     {
       // Constant proto-CFLOBDDs V has out degree 2
       return 2;
     }
-    else if (this->function() == function_symbol_c())
+    else if (this->function() == g_proto_cflobdd_c)
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) has out degree equal to its highest value + 1
       const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
@@ -277,17 +258,17 @@ public:
     // The amount of proposition letters must be equal to two to the power of the proto-CFLOBDD's level
     assert(sigma.size() == std::pow(2, this->level()));
 
-    if (this->function() == function_symbol_i())
+    if (this->function() == g_proto_cflobdd_i)
     {
       // Constant proto-CFLOBDDs I always evaluates to 0
       return 0;
     }
-    else if (this->function() == function_symbol_v())
+    else if (this->function() == g_proto_cflobdd_v)
     {
       // Constant proto-CFLOBDDs V evaluates to 0 or 1 for the assignment False or True respectively
       return sigma[0] ? 1 : 0;
     }
-    else if (this->function() == function_symbol_c())
+    else if (this->function() == g_proto_cflobdd_c)
     {
       // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) evaluates inductively
       // Each call passes half of the proposition letter assignments
@@ -350,7 +331,7 @@ public:
     }
 
     // Return V, with the same result for either proto-CFLOBDD, if both proto-CFLOBDDs are V
-    const aterm_proto_cflobdd& v = aterm_proto_cflobdd(function_symbol_v());
+    const aterm_proto_cflobdd& v = aterm_proto_cflobdd(g_proto_cflobdd_v);
     if (*this == v && other == v)
     {
       const aterm_int& zero = aterm_int(0);
@@ -489,7 +470,7 @@ public:
   aterm_proto_cflobdd no_distinction(const size_t& level) const noexcept
   {
     // Base case I
-    if (level == 0) return aterm_proto_cflobdd(function_symbol_i());
+    if (level == 0) return aterm_proto_cflobdd(g_proto_cflobdd_i);
 
     // Inductively build on lower level no-distinction proto-CFLOBDDs
     const aterm_proto_cflobdd& lower = no_distinction(level - 1);
@@ -504,7 +485,7 @@ class aterm_proto_cflobdd_i: public aterm_proto_cflobdd
 {
 public:
   aterm_proto_cflobdd_i()
-    : aterm_proto_cflobdd(function_symbol_i())
+    : aterm_proto_cflobdd(g_proto_cflobdd_i)
   {}
 };
 
@@ -513,7 +494,7 @@ class aterm_proto_cflobdd_v: public aterm_proto_cflobdd
 {
 public:
   aterm_proto_cflobdd_v()
-    : aterm_proto_cflobdd(function_symbol_v())
+    : aterm_proto_cflobdd(g_proto_cflobdd_v)
   {}
 };
 

@@ -19,13 +19,9 @@
 namespace atermpp
 {
 
-/// \brief Get the CFLOBDD function symbol.
-/// \return The CFLOBDD function symbol
-inline
-const function_symbol& function_symbol_cflobdd()
+namespace
 {
-  static function_symbol function_symbol_cflobdd = function_symbol("CFLOBDD", 2);
-  return function_symbol_cflobdd;
+  global_function_symbol g_cflobdd("CFLOBDD", 2);
 }
 
 /// \brief A CFLOBDD term encodes a boolean function.
@@ -44,7 +40,7 @@ public:
   /// \param c The proto-CFLOBDD
   /// \param f The result mapping
   aterm_cflobdd(const aterm_proto_cflobdd& c, const aterm_list& vs)
-    : aterm(function_symbol_cflobdd(), c, vs)
+    : aterm(g_cflobdd, c, vs)
   {
     assert(is_cflobdd());
   }
@@ -54,7 +50,7 @@ public:
   bool is_cflobdd() const noexcept
   {
     // The function symbol must match the CFLOBDD function symbol
-    if (this->function() != function_symbol_cflobdd()) return 0;
+    if (this->function() != g_cflobdd) return 0;
 
     // The proto-CFLOBDD must also be validated
     // This is already done in debug mode via the downcast and the corresponding assert
