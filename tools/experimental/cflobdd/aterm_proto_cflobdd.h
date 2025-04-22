@@ -63,11 +63,11 @@ inline aterm_pair collapse_classes_leftmost(const aterm_list& values) noexcept
     const aterm_int& value = down_cast<aterm_int>(v);
     const std::vector<aterm_int>::iterator& value_location = std::find(projected.begin(), projected.end(), value);
 
-    // Project the values such that we only keep the leftmost occurrence of duplicates
-    if (value_location == projected.end()) projected.push_back(value);
-
     // Renumber the values such that they coincide with the index where the projected list holds the original value
     renumbered.push_back(aterm_int(value_location - projected.begin()));
+
+    // Project the values such that we only keep the leftmost occurrence of duplicates
+    if (value_location == projected.end()) projected.push_back(value);
   }
 
   return aterm_pair(
@@ -324,27 +324,27 @@ public:
   aterm_pair pair_product(const aterm_proto_cflobdd& other) const noexcept
   {
     aterm_list values;
+    const size_t& this_out_degree = this->out_degree();
+    const size_t& other_out_degree = other.out_degree();
 
     // Return the other proto-CFLOBDD, pairing its outputs with zero, if this is a no-distinction proto-CFLOBDD
-    size_t out_degree = this->out_degree();
-    if (out_degree == 1)
+    if (this_out_degree == 1)
     {
       const aterm_int& zero = aterm_int(0);
-      for (size_t i = out_degree; i > 0; i--)
+      for (size_t i = other_out_degree; i > 0; i--)
       {
-        values.push_front(aterm_pair(zero, aterm_int(i)));
+        values.push_front(aterm_pair(zero, aterm_int(i - 1)));
       }
       return aterm_pair(other, values);
     }
 
     // Return this proto-CFLOBDD, pairing its outputs with zero, if the other is a no-distinction proto-CFLOBDD
-    out_degree = other.out_degree();
-    if (out_degree == 1)
+    if (other_out_degree == 1)
     {
       const aterm_int& zero = aterm_int(0);
-      for (size_t i = out_degree; i > 0; i--)
+      for (size_t i = this_out_degree; i > 0; i--)
       {
-        values.push_front(aterm_pair(aterm_int(i), zero));
+        values.push_front(aterm_pair(aterm_int(i - 1), zero));
       }
       return aterm_pair(*this, values);
     }

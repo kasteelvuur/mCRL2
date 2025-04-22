@@ -4,7 +4,7 @@
 
 using namespace atermpp;
 
-std::string to_string(std::vector<bool> vec)
+std::string to_string(const std::vector<bool>& vec)
 {
   std::string res = "[";
   bool first = true;
@@ -136,6 +136,34 @@ int main()
   const aterm_cflobdd& yg2 =  y && g2;
   test_cflobdd(yg2);
   test_cflobdd(yg2.negate());
+ 
+  // p_0 <=> q_0 && p_1 <=> q_1 -- with order p_0, p_1, q_0, q_1
+  // i = 0
+  aterm_list proto_conj_0_a_b;
+  proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[1]")));
+  proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[0]")));
+  const aterm_proto_cflobdd& proto_conj_0_a = aterm_proto_cflobdd(v, proto_conj_0_a_b);
+  aterm_list proto_conj_0_b;
+  proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[1,0]")));
+  proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[0,1]")));
+  const aterm_proto_cflobdd& proto_conj_0 = aterm_proto_cflobdd(proto_conj_0_a, proto_conj_0_b);
+  test_proto_cflobdd(proto_conj_0);
+  // i = 1
+  aterm_list proto_conj_1_a_b;
+  proto_conj_1_a_b.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
+  const aterm_proto_cflobdd& proto_conj_1_a = aterm_proto_cflobdd(i, proto_conj_1_a_b);
+  aterm_list proto_conj_1_b;
+  proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[1,0]")));
+  proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[0,1]")));
+  const aterm_proto_cflobdd& proto_conj_1 = aterm_proto_cflobdd(proto_conj_1_a, proto_conj_1_b);
+  test_proto_cflobdd(proto_conj_1);
+  // combine
+  const aterm_cflobdd& conj_0 = aterm_cflobdd(proto_conj_0, read_list_from_string("[1,0]"));
+  test_cflobdd(conj_0);
+  const aterm_cflobdd& conj_1 = aterm_cflobdd(proto_conj_1, read_list_from_string("[1,0]"));
+  test_cflobdd(conj_1);
+  const aterm_cflobdd& conj = conj_0 && conj_1;
+  test_cflobdd(conj);
 
   return 0;
 }
