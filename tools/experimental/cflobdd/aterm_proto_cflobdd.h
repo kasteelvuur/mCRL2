@@ -403,7 +403,7 @@ public:
 
   /// \brief Reduce this proto-CFLOBDD according to the new return values.
   /// \param values The new return values
-  /// \return The reduces proto-CFLOBDD
+  /// \return The reduced proto-CFLOBDD
   aterm_proto_cflobdd reduce(const aterm_list& values) const noexcept
   {
     // This proto-CFLOBDD cannot be reduced according to values that read [0, ..., |values| - 1]
@@ -477,6 +477,79 @@ public:
     const aterm_list& values = {aterm_int(0)};
     const aterm_list& cvs = {aterm_pair(lower, values)};
     return aterm_proto_cflobdd(lower, cvs);
+  }
+
+  /// \brief Fix a proposition letter assignment.
+  /// \param index The index of the proposition letter
+  /// \param value The fixed value
+  /// \return The new proto-CFLOBDD with a list of old exit values at their new indices
+  aterm_pair fix(const size_t& index, const aterm_int& value) const noexcept
+  {
+    assert(index < std::pow(2, this->level()));
+
+    // Fixing a proposition letter assignment has no effect on no-distinction proto-CFLOBDDs
+    if (this->out_degree() == 1)
+    {
+      aterm_list values;
+      values.push_front(aterm_int(0));
+      return aterm_pair(*this, values);
+    }
+
+    // Fix the proposition letter assignment if we have reached a constant proto-CFLOBDD V
+    if (*this == aterm_proto_cflobdd(g_proto_cflobdd_v))
+    {
+      aterm_list values;
+      values.push_front(value);
+      return aterm_pair(aterm_proto_cflobdd(g_proto_cflobdd_i), values);
+    }
+
+    if (index < std::pow(2, this->level() - 1))
+    {
+      // The proposition letter is in the left split, so recurse there
+      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+      const aterm_pair& fixed_pair = c.fix(index, value);
+      const aterm_proto_cflobdd& fixed_c = down_cast<aterm_proto_cflobdd>(fixed_pair.first());
+
+      // Calculate the new value mapping accordingly
+      const std::vector<aterm>& cvs_vec = as_vector(down_cast<aterm_list>((*this)[1]));
+      const aterm_list& fixed_values = down_cast<aterm_list>(fixed_pair.second());
+      std::vector<aterm_pair> new_cvs_vec;
+      std::vector<aterm_int> new_values_vec;
+      for (const aterm& fixed_value : fixed_values)
+      {
+        // Get the proto-CFLOBDD and result mapping corresponding to the fixed value
+        const size_t& fixed_index = down_cast<aterm_int>(fixed_value).value();
+        const aterm_pair& fixed_cv = down_cast<aterm_pair>(cvs_vec[fixed_index]);
+        const aterm_list& fixed_vs = down_cast<aterm_list>(fixed_cv.second());
+
+        // Add the result mapping value if it is not included yet
+        // Set the return value for the proto-CFLOBDD to the index of the value
+        std::vector<aterm_int> fixed_v_vec;
+        for (const aterm& fixed_v : fixed_vs)
+        {
+          const aterm_int& v = down_cast<aterm_int>(fixed_v);
+          const std::vector<aterm_int>::iterator& value_location = std::find(new_values_vec.begin(), new_values_vec.end(), v);
+          const size_t& index = value_location - new_values_vec.begin();
+          if (value_location == new_values_vec.end()) new_values_vec.push_back(v);
+          fixed_v_vec.push_back(aterm_int(index));
+        }
+        new_cvs_vec.push_back(aterm_pair(
+          down_cast<aterm_proto_cflobdd>(fixed_cv.first()),
+          aterm_list(fixed_v_vec.begin(), fixed_v_vec.end())
+        ));
+      }
+
+      return aterm_pair(
+        aterm_proto_cflobdd(fixed_c, aterm_list(new_cvs_vec.begin(), new_cvs_vec.end())),
+        aterm_list(new_values_vec.begin(), new_values_vec.end())
+      );
+    }
+    else
+    {
+      // The proposition letter is in the right split, so recurse there
+      // TODO
+      assert(false);
+    }
   }
 };
 

@@ -165,5 +165,10 @@ int main()
   const aterm_cflobdd& conj = conj_0 && conj_1;
   test_cflobdd(conj);
 
+  test_cflobdd(conj.exists(0));
+  test_cflobdd(conj.exists(1));
+  test_cflobdd(conj.exists(2));
+  test_cflobdd(conj.exists(3));
+
   return 0;
 }
