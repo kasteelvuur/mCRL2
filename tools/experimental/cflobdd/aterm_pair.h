@@ -20,13 +20,9 @@
 namespace atermpp
 {
 
-/// \brief Get the pair term function symbol.
-/// \return The pair term function symbol
-inline
-const function_symbol& function_symbol_pair()
+namespace
 {
-  static function_symbol function_symbol_pair = function_symbol("pair", 2);
-  return function_symbol_pair;
+  global_function_symbol g_pair("pair", 2);
 }
 
 /// \brief A pair term stores two terms. It carries these as arguments.
@@ -37,7 +33,7 @@ public:
   /// \param first The first term of the pair.
   /// \param second The second term of the pair.
   explicit aterm_pair(const aterm& first, const aterm& second)
-    : aterm(function_symbol_pair(), first, second)
+    : aterm(g_pair, first, second)
   {}
 
   /// \brief Constructs a pair term from an aterm.
@@ -45,7 +41,7 @@ public:
   explicit aterm_pair(const aterm& t)
     : aterm(t)
   {
-    assert(t.function() == function_symbol_pair() || !defined());
+    assert(t.function() == g_pair || !defined());
   }
 
   /// \brief Provide the first term stored in the pair. 

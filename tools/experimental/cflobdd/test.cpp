@@ -169,6 +169,7 @@ int main()
   test_cflobdd(conj.exists(1));
   test_cflobdd(conj.exists(2));
   test_cflobdd(conj.exists(3));
+  test_cflobdd(conj.exists(1) || conj.exists(2));
 
   return 0;
 }

@@ -503,18 +503,25 @@ public:
       return aterm_pair(aterm_proto_cflobdd(g_proto_cflobdd_i), values);
     }
 
-    if (index < std::pow(2, this->level() - 1))
+    // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) remains
+    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
+
+    aterm_proto_cflobdd new_c = c;
+    std::vector<aterm_pair> new_cvs_vec;
+    std::vector<aterm_int> new_values_vec;
+
+    // Determine the location of the proposition letter
+    const size_t& mid_index = std::pow(2, this->level() - 1);
+    if (index < mid_index)
     {
       // The proposition letter is in the left split, so recurse there
-      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
       const aterm_pair& fixed_pair = c.fix(index, value);
-      const aterm_proto_cflobdd& fixed_c = down_cast<aterm_proto_cflobdd>(fixed_pair.first());
+      new_c = down_cast<aterm_proto_cflobdd>(fixed_pair.first());
 
       // Calculate the new value mapping accordingly
       const std::vector<aterm>& cvs_vec = as_vector(down_cast<aterm_list>((*this)[1]));
       const aterm_list& fixed_values = down_cast<aterm_list>(fixed_pair.second());
-      std::vector<aterm_pair> new_cvs_vec;
-      std::vector<aterm_int> new_values_vec;
       for (const aterm& fixed_value : fixed_values)
       {
         // Get the proto-CFLOBDD and result mapping corresponding to the fixed value
@@ -529,27 +536,64 @@ public:
         {
           const aterm_int& v = down_cast<aterm_int>(fixed_v);
           const std::vector<aterm_int>::iterator& value_location = std::find(new_values_vec.begin(), new_values_vec.end(), v);
-          const size_t& index = value_location - new_values_vec.begin();
+          const size_t& value_index = value_location - new_values_vec.begin();
           if (value_location == new_values_vec.end()) new_values_vec.push_back(v);
-          fixed_v_vec.push_back(aterm_int(index));
+          fixed_v_vec.push_back(aterm_int(value_index));
         }
         new_cvs_vec.push_back(aterm_pair(
           down_cast<aterm_proto_cflobdd>(fixed_cv.first()),
           aterm_list(fixed_v_vec.begin(), fixed_v_vec.end())
         ));
       }
-
-      return aterm_pair(
-        aterm_proto_cflobdd(fixed_c, aterm_list(new_cvs_vec.begin(), new_cvs_vec.end())),
-        aterm_list(new_values_vec.begin(), new_values_vec.end())
-      );
     }
     else
     {
       // The proposition letter is in the right split, so recurse there
-      // TODO
-      assert(false);
+      std::vector<aterm_int> reduce_values_vec;
+      const size_t& new_index = index - mid_index;
+      for (const aterm& cv : cvs)
+      {
+        // Cast the current data
+        const aterm_pair& cv_pair = down_cast<aterm_pair>(cv);
+        const aterm_proto_cflobdd& old_c = down_cast<aterm_proto_cflobdd>(cv_pair.first());
+        const aterm_list& old_vs = down_cast<aterm_list>(cv_pair.second());
+        const std::vector<aterm>& old_vs_vec = as_vector(old_vs);
+
+        // Fix the proposition letter assignment in the old proto-CFLOBDD
+        const aterm_pair& fixed_pair = old_c.fix(new_index, value);
+        const aterm_list& fixed_values = down_cast<aterm_list>(fixed_pair.second());
+
+        // Calculate the corresponding result mapping 
+        std::vector<aterm_int> fixed_v_vec;
+        for (const aterm& fixed_value : fixed_values)
+        {
+          const size_t& fixed_value_index = down_cast<aterm_int>(fixed_value).value();
+          const aterm_int& value_mapped = down_cast<aterm_int>(old_vs_vec[fixed_value_index]);
+          const std::vector<aterm_int>::iterator& value_location = std::find(new_values_vec.begin(), new_values_vec.end(), value_mapped);
+          const size_t& value_index = value_location - new_values_vec.begin();
+          if (value_location == new_values_vec.end()) new_values_vec.push_back(value_mapped);
+          fixed_v_vec.push_back(aterm_int(value_index));
+        }
+
+        // Add the proto-CFLOBDD and result mapping pair if it is not included yet
+        const aterm_pair& new_cv = aterm_pair(
+          down_cast<aterm_proto_cflobdd>(fixed_pair.first()),
+          aterm_list(fixed_v_vec.begin(), fixed_v_vec.end())
+        );
+        const std::vector<aterm_pair>::iterator& cv_location = std::find(new_cvs_vec.begin(), new_cvs_vec.end(), new_cv);
+        const size_t& cv_index = cv_location - new_cvs_vec.begin();
+        if (std::find(new_cvs_vec.begin(), new_cvs_vec.end(), new_cv) == new_cvs_vec.end()) new_cvs_vec.push_back(new_cv);
+        reduce_values_vec.push_back(aterm_int(cv_index));
+      }
+
+      // Reduce the old c
+      new_c = new_c.reduce(aterm_list(reduce_values_vec.begin(), reduce_values_vec.end()));
     }
+
+    return aterm_pair(
+      aterm_proto_cflobdd(new_c, aterm_list(new_cvs_vec.begin(), new_cvs_vec.end())),
+      aterm_list(new_values_vec.begin(), new_values_vec.end())
+    );
   }
 };
 
