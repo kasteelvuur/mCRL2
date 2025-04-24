@@ -103,7 +103,7 @@ public:
 
   /// \brief Negate this CFLOBDD.
   /// \return The new CFLOBDD
-  aterm_cflobdd negate() const noexcept
+  aterm_cflobdd operator!() const noexcept
   {
     const aterm_list& f = down_cast<aterm_list>((*this)[1]);
     aterm_list g;
@@ -194,7 +194,7 @@ public:
     );
   }
 
-  /// \brief Calculate the conjunction of two CFLOBDDs.
+  /// \brief Calculate the disjunction of two CFLOBDDs.
   /// \param other The CFLOBDD to combine with
   /// \return The new CFLOBDD
   aterm_cflobdd operator||(const aterm_cflobdd& other) const noexcept
