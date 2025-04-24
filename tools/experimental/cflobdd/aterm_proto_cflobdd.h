@@ -467,7 +467,7 @@ public:
   /// \brief Construct a no-distinction proto-CFLOBDD of a specific level.
   /// \param level The level of the no-distinction proto-CFLOBDD
   /// \return A no-distinction proto-CFLOBDD of the provided level
-  aterm_proto_cflobdd no_distinction(const size_t& level) const noexcept
+  static aterm_proto_cflobdd no_distinction(const size_t& level) noexcept
   {
     // Base case I
     if (level == 0) return aterm_proto_cflobdd(g_proto_cflobdd_i);

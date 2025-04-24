@@ -4,6 +4,47 @@
 
 using namespace atermpp;
 
+aterm_proto_cflobdd construct_proto_cflobdd(const size_t& level, const size_t& letter_index)
+{
+  assert(letter_index < std::pow(2, level));
+
+  // Return the constant V for level 0
+  if (!level) return aterm_proto_cflobdd_v();
+
+  // Determine the location of the proposition letter
+  const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd::no_distinction(level - 1);
+  const size_t& mid_index = std::pow(2, level - 1);
+  if (letter_index < mid_index)
+  {
+    // The proposition letter is in the left split, so recurse there
+    const aterm_proto_cflobdd& c = construct_proto_cflobdd(level - 1, letter_index);
+    aterm_list cvs;
+    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[1]")));
+    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[0]")));
+    return aterm_proto_cflobdd(c, cvs);
+  }
+  else
+  {
+    // The proposition letter is in the right split, so recurse there
+    aterm_list cvs;
+    cvs.push_front(aterm_pair(
+      construct_proto_cflobdd(level - 1, letter_index - mid_index),
+      read_list_from_string("[0,1]")
+    ));
+    return aterm_proto_cflobdd(no_distinction, cvs);
+  }
+}
+aterm_cflobdd construct_cflobdd(const size_t& level, const size_t& letter_index)
+{
+  assert(letter_index < std::pow(2, level));
+  const aterm_cflobdd& c = aterm_cflobdd(
+    construct_proto_cflobdd(level, letter_index),
+    read_list_from_string("[0,1]")
+  );
+  assert(c.is_reduced());
+  return c;
+}
+
 std::string to_string(const std::vector<bool>& vec)
 {
   std::string res = "[";
@@ -67,6 +108,62 @@ void test_cflobdd(const aterm_cflobdd& c)
     std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
   }
 
+  std::cout << "\n";
+}
+
+/// \brief Test the CFLOBDD for the conjunction of biconditions.
+///   The CFLOBDD encodes \bigwedge_{i=0}^{n-1} p_i <=> q_i
+///   for the order [p_0, ..., p_{n-1}, q_0, ..., q_{n-1}].
+/// @param n The amount of proposition letters labelled p and q
+void test_conjunction_of_biconditions(const size_t& n = 2)
+{
+  // Calculate the required CFLOBDD level
+  const size_t& level = std::ceil(std::log2(n)) + 1;
+  assert(std::pow(2, level - 1) < 2 * n && 2 * n <= std::pow(2, level));
+
+  // Create 2*n CFLOBDDs for singular proposition letters
+  std::vector<aterm_cflobdd> proposition_letters;
+  for (size_t i = 0; i < 2 * n; i++)
+  {
+    const aterm_cflobdd& proposition_letter = construct_cflobdd(level, i);
+    proposition_letters.push_back(proposition_letter);
+    // test_cflobdd(proposition_letter);
+  }
+  assert(proposition_letters.size() == 2 * n);
+
+  // Create paired CFLOBDDs p_i <=> q_i given the order [p_0, ..., p_{n-1}, q_0, ..., q_{n-1}]
+  std::vector<aterm_cflobdd> paired_proposition_letters;
+  for (size_t i = 0; i < n; i++)
+  {
+    const aterm_cflobdd& paired_proposition_letter = proposition_letters[i].iff(proposition_letters[i + n]);
+    paired_proposition_letters.push_back(paired_proposition_letter);
+    // test_cflobdd(paired_proposition_letter);
+  }
+  assert(paired_proposition_letters.size() == n);
+
+  // Take the conjunction of all paired CFLOBDDs
+  aterm_cflobdd conjuction = paired_proposition_letters[0];
+  for (size_t i = 1; i < n; i++)
+  {
+    conjuction = conjuction && paired_proposition_letters[i];
+    // test_cflobdd(conjuction);
+  }
+
+  // Ensure that the CFLOBDD evaluates correctly
+  const size_t& configuration_count = std::pow(2, 2 * n);
+  const size_t& correctness_interval = std::pow(2, n) + 1;
+  std::vector<bool> sigma (std::pow(2, level));
+  for (size_t i = 0; i < configuration_count; i++)
+  {
+    for (size_t j = 0; j < 2 * n; j++)
+    {
+      sigma[j] = i & (1 << (2 * n - j - 1));
+    }
+    const size_t& eval = conjuction.evaluate(sigma);
+    std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
+    const size_t& expected = !(i % correctness_interval);
+    assert(eval == expected);
+  }
   std::cout << "\n";
 }
 
@@ -170,6 +267,8 @@ int main()
   test_cflobdd(conj.exists(2));
   test_cflobdd(conj.exists(3));
   test_cflobdd(conj.exists(1) || conj.exists(2));
+
+  test_conjunction_of_biconditions(5);
 
   return 0;
 }

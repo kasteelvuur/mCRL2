@@ -208,6 +208,20 @@ public:
     );
   }
 
+  /// \brief Calculate the biconditional of two CFLOBDDs.
+  /// \param other The CFLOBDD to combine with
+  /// \return The new CFLOBDD
+  aterm_cflobdd iff(const aterm_cflobdd& other) const noexcept
+  {
+    return this->apply_and_reduce(
+      other,
+      [](const aterm_int& i, const aterm_int& j) -> aterm_int
+      {
+        return aterm_int(i.value() == j.value());
+      }
+    );
+  }
+
   /// \brief Calculate the existential quantification of this CFLOBDD.
   /// \param index The index of the proposition letter that should be used
   /// \return The new CFLOBDD
