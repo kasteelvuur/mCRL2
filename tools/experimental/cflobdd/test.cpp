@@ -71,7 +71,7 @@ void test_cflobdd(const aterm_cflobdd& c)
 /// \brief Test the CFLOBDD for the conjunction of biconditions.
 ///   The CFLOBDD encodes \bigwedge_{i=0}^{n-1} p_i <=> q_i
 ///   for the order [p_0, ..., p_{n-1}, q_0, ..., q_{n-1}].
-/// @param n The amount of proposition letters labelled p and q
+/// \param n The amount of proposition letters labelled p and q
 void test_conjunction_of_biconditions(const size_t& n = 2)
 {
   // Calculate the required CFLOBDD level

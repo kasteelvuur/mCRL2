@@ -75,7 +75,7 @@ aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::vector<s
 }
 
 text_aterm_cflobdd_istream::text_aterm_cflobdd_istream(std::istream& is, const std::vector<std::string>& variables)
-  : m_stream(is), m_variables(variables), m_level(std::ceil(std::log2(variables.size())) + 1)
+  : m_stream(is), m_variables(variables), m_level(std::ceil(std::log2(variables.size())))
 {
   character = next_char();
 }
@@ -240,7 +240,7 @@ aterm_cflobdd text_aterm_cflobdd_istream::parse_primary(int& character)
 
     // Get the index of the proposition variable
     const std::vector<std::string>::const_iterator& location = std::find(m_variables.begin(), m_variables.end(), name);
-    if (location== m_variables.end())
+    if (location == m_variables.end())
     {
       throw std::runtime_error("Unknown variable '" + name + "' while parsing a CFLOBDD term");
     }

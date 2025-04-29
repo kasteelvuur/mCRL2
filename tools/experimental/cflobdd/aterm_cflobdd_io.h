@@ -94,7 +94,7 @@ private:
 
   std::istream& m_stream;
   const std::vector<std::string>& m_variables;
-  const size_t& m_level;
+  const std::size_t m_level;
 
   std::size_t m_line = 0; ///< The line number of the current character.
   std::size_t m_column = 0; ///< The column of the current character.
