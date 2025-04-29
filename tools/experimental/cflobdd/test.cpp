@@ -1,49 +1,6 @@
-#include "aterm_cflobdd.h"
-
-#include "mcrl2/atermpp/aterm_io.h"
+#include "aterm_cflobdd_io.h"
 
 using namespace atermpp;
-
-aterm_proto_cflobdd construct_proto_cflobdd(const size_t& level, const size_t& letter_index)
-{
-  assert(letter_index < std::pow(2, level));
-
-  // Return the constant V for level 0
-  if (!level) return aterm_proto_cflobdd_v();
-
-  // Determine the location of the proposition letter
-  const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd::no_distinction(level - 1);
-  const size_t& mid_index = std::pow(2, level - 1);
-  if (letter_index < mid_index)
-  {
-    // The proposition letter is in the left split, so recurse there
-    const aterm_proto_cflobdd& c = construct_proto_cflobdd(level - 1, letter_index);
-    aterm_list cvs;
-    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[1]")));
-    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[0]")));
-    return aterm_proto_cflobdd(c, cvs);
-  }
-  else
-  {
-    // The proposition letter is in the right split, so recurse there
-    aterm_list cvs;
-    cvs.push_front(aterm_pair(
-      construct_proto_cflobdd(level - 1, letter_index - mid_index),
-      read_list_from_string("[0,1]")
-    ));
-    return aterm_proto_cflobdd(no_distinction, cvs);
-  }
-}
-aterm_cflobdd construct_cflobdd(const size_t& level, const size_t& letter_index)
-{
-  assert(letter_index < std::pow(2, level));
-  const aterm_cflobdd& c = aterm_cflobdd(
-    construct_proto_cflobdd(level, letter_index),
-    read_list_from_string("[0,1]")
-  );
-  assert(c.is_reduced());
-  return c;
-}
 
 std::string to_string(const std::vector<bool>& vec)
 {
@@ -268,7 +225,9 @@ int main()
   test_cflobdd(conj.exists(3));
   test_cflobdd(conj.exists(1) || conj.exists(2));
 
-  test_conjunction_of_biconditions(5);
+  test_conjunction_of_biconditions(3);
+
+  test_cflobdd(read_cflobdd_from_string("p || q && r || s", {"p", "q", "r", "s"}));
 
   return 0;
 }
