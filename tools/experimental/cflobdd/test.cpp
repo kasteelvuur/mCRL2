@@ -1,4 +1,5 @@
 #include "aterm_cflobdd_io.h"
+#include <chrono>
 
 using namespace atermpp;
 
@@ -9,6 +10,19 @@ std::string to_string(const std::vector<bool>& vec)
   for (const bool& val : vec) {
     if (!first) res.push_back(',');
     res.push_back(val ? '1' : '0');
+    first = false;
+  }
+  res.push_back(']');
+  return res;
+}
+
+std::string to_string(const std::vector<std::string>& vec)
+{
+  std::string res = "[";
+  bool first = true;
+  for (const std::string& val : vec) {
+    if (!first) res.push_back(',');
+    res.append(val);
     first = false;
   }
   res.push_back(']');
@@ -126,108 +140,164 @@ void test_conjunction_of_biconditions(const size_t& n = 2)
 
 int main()
 {
-  const aterm_proto_cflobdd_i i;
-  test_proto_cflobdd(i);
+  // const aterm_proto_cflobdd_i i;
+  // test_proto_cflobdd(i);
 
-  const aterm_proto_cflobdd_v v;
-  test_proto_cflobdd(v);
+  // const aterm_proto_cflobdd_v v;
+  // test_proto_cflobdd(v);
 
-  aterm_list p;
-  p.push_front(aterm_pair(v, read_list_from_string("[2,1]")));
-  p.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
-  const aterm_proto_cflobdd& c = aterm_proto_cflobdd(v,p);
-  test_proto_cflobdd(c);
+  // aterm_list p;
+  // p.push_front(aterm_pair(v, read_list_from_string("[2,1]")));
+  // p.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
+  // const aterm_proto_cflobdd& c = aterm_proto_cflobdd(v,p);
+  // test_proto_cflobdd(c);
 
-  aterm_list q;
-  q.push_front(aterm_pair(i, read_list_from_string("[0]")));
-  const aterm_proto_cflobdd& d = aterm_proto_cflobdd(i, q);
-  test_proto_cflobdd(d);
+  // aterm_list q;
+  // q.push_front(aterm_pair(i, read_list_from_string("[0]")));
+  // const aterm_proto_cflobdd& d = aterm_proto_cflobdd(i, q);
+  // test_proto_cflobdd(d);
 
-  aterm_list r;
-  r.push_front(aterm_pair(c, read_list_from_string("[3,0,1]")));
-  r.push_front(aterm_pair(d, read_list_from_string("[1]")));
-  r.push_front(aterm_pair(c, read_list_from_string("[0,1,2]")));
-  const aterm_proto_cflobdd& e = aterm_proto_cflobdd(c, r);
-  test_proto_cflobdd(e);
+  // aterm_list r;
+  // r.push_front(aterm_pair(c, read_list_from_string("[3,0,1]")));
+  // r.push_front(aterm_pair(d, read_list_from_string("[1]")));
+  // r.push_front(aterm_pair(c, read_list_from_string("[0,1,2]")));
+  // const aterm_proto_cflobdd& e = aterm_proto_cflobdd(c, r);
+  // test_proto_cflobdd(e);
 
-  aterm_list s;
-  s.push_front(aterm_pair(aterm_proto_cflobdd_v(), read_list_from_string("[0,1]")));
-  s.push_front(aterm_pair(aterm_proto_cflobdd_v(), read_list_from_string("[0,1]")));
-  const aterm_proto_cflobdd& f = aterm_proto_cflobdd(aterm_proto_cflobdd_v(), s);
-  test_proto_cflobdd(f);
+  // aterm_list s;
+  // s.push_front(aterm_pair(aterm_proto_cflobdd_v(), read_list_from_string("[0,1]")));
+  // s.push_front(aterm_pair(aterm_proto_cflobdd_v(), read_list_from_string("[0,1]")));
+  // const aterm_proto_cflobdd& f = aterm_proto_cflobdd(aterm_proto_cflobdd_v(), s);
+  // test_proto_cflobdd(f);
 
-  aterm_list t;
-  t.push_front(aterm_pair(v, read_list_from_string("[0,0]")));
-  const aterm_proto_cflobdd& g = aterm_proto_cflobdd(i, t);
-  test_proto_cflobdd(g);
+  // aterm_list t;
+  // t.push_front(aterm_pair(v, read_list_from_string("[0,0]")));
+  // const aterm_proto_cflobdd& g = aterm_proto_cflobdd(i, t);
+  // test_proto_cflobdd(g);
 
-  aterm_list u;
-  u.push_front(aterm_pair(i, read_list_from_string("[1]")));
-  const aterm_proto_cflobdd& h = aterm_proto_cflobdd(i, u);
-  test_proto_cflobdd(h);
+  // aterm_list u;
+  // u.push_front(aterm_pair(i, read_list_from_string("[1]")));
+  // const aterm_proto_cflobdd& h = aterm_proto_cflobdd(i, u);
+  // test_proto_cflobdd(h);
 
-  aterm_list tt;
-  tt.push_front(aterm_pair(g, read_list_from_string("[0]")));
-  const aterm_proto_cflobdd& gg = aterm_proto_cflobdd(g, tt);
-  test_proto_cflobdd(gg);
+  // aterm_list tt;
+  // tt.push_front(aterm_pair(g, read_list_from_string("[0]")));
+  // const aterm_proto_cflobdd& gg = aterm_proto_cflobdd(g, tt);
+  // test_proto_cflobdd(gg);
 
-  const aterm_cflobdd& x = aterm_cflobdd(d, read_list_from_string("[1]"));
-  test_cflobdd(x);
-  test_cflobdd(!x);
+  // const aterm_cflobdd& x = aterm_cflobdd(d, read_list_from_string("[1]"));
+  // test_cflobdd(x);
+  // test_cflobdd(!x);
 
-  const aterm_cflobdd& y = aterm_cflobdd(e, read_list_from_string("[0,1,0,1]"));
-  test_cflobdd(y);
-  test_cflobdd(!y);
+  // const aterm_cflobdd& y = aterm_cflobdd(e, read_list_from_string("[0,1,0,1]"));
+  // test_cflobdd(y);
+  // test_cflobdd(!y);
 
-  const aterm_cflobdd& z = aterm_cflobdd(v, read_list_from_string("[0,0]"));
-  test_cflobdd(z);
-  test_cflobdd(!z);
+  // const aterm_cflobdd& z = aterm_cflobdd(v, read_list_from_string("[0,0]"));
+  // test_cflobdd(z);
+  // test_cflobdd(!z);
 
-  const aterm_cflobdd& g2 = aterm_cflobdd(gg, read_list_from_string("[1]"));
-  test_cflobdd(g2);
-  test_cflobdd(!g2);
+  // const aterm_cflobdd& g2 = aterm_cflobdd(gg, read_list_from_string("[1]"));
+  // test_cflobdd(g2);
+  // test_cflobdd(!g2);
 
-  const aterm_cflobdd& yg2 =  y && g2;
-  test_cflobdd(yg2);
-  test_cflobdd(!yg2);
+  // const aterm_cflobdd& yg2 =  y && g2;
+  // test_cflobdd(yg2);
+  // test_cflobdd(!yg2);
  
-  // p_0 <=> q_0 && p_1 <=> q_1 -- with order p_0, p_1, q_0, q_1
-  // i = 0
-  aterm_list proto_conj_0_a_b;
-  proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[1]")));
-  proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[0]")));
-  const aterm_proto_cflobdd& proto_conj_0_a = aterm_proto_cflobdd(v, proto_conj_0_a_b);
-  aterm_list proto_conj_0_b;
-  proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[1,0]")));
-  proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[0,1]")));
-  const aterm_proto_cflobdd& proto_conj_0 = aterm_proto_cflobdd(proto_conj_0_a, proto_conj_0_b);
-  test_proto_cflobdd(proto_conj_0);
-  // i = 1
-  aterm_list proto_conj_1_a_b;
-  proto_conj_1_a_b.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
-  const aterm_proto_cflobdd& proto_conj_1_a = aterm_proto_cflobdd(i, proto_conj_1_a_b);
-  aterm_list proto_conj_1_b;
-  proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[1,0]")));
-  proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[0,1]")));
-  const aterm_proto_cflobdd& proto_conj_1 = aterm_proto_cflobdd(proto_conj_1_a, proto_conj_1_b);
-  test_proto_cflobdd(proto_conj_1);
-  // combine
-  const aterm_cflobdd& conj_0 = aterm_cflobdd(proto_conj_0, read_list_from_string("[1,0]"));
-  test_cflobdd(conj_0);
-  const aterm_cflobdd& conj_1 = aterm_cflobdd(proto_conj_1, read_list_from_string("[1,0]"));
-  test_cflobdd(conj_1);
-  const aterm_cflobdd& conj = conj_0 && conj_1;
-  test_cflobdd(conj);
+  // // p_0 <=> q_0 && p_1 <=> q_1 -- with order p_0, p_1, q_0, q_1
+  // // i = 0
+  // aterm_list proto_conj_0_a_b;
+  // proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[1]")));
+  // proto_conj_0_a_b.push_front(aterm_pair(i, read_list_from_string("[0]")));
+  // const aterm_proto_cflobdd& proto_conj_0_a = aterm_proto_cflobdd(v, proto_conj_0_a_b);
+  // aterm_list proto_conj_0_b;
+  // proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[1,0]")));
+  // proto_conj_0_b.push_front(aterm_pair(proto_conj_0_a, read_list_from_string("[0,1]")));
+  // const aterm_proto_cflobdd& proto_conj_0 = aterm_proto_cflobdd(proto_conj_0_a, proto_conj_0_b);
+  // test_proto_cflobdd(proto_conj_0);
+  // // i = 1
+  // aterm_list proto_conj_1_a_b;
+  // proto_conj_1_a_b.push_front(aterm_pair(v, read_list_from_string("[0,1]")));
+  // const aterm_proto_cflobdd& proto_conj_1_a = aterm_proto_cflobdd(i, proto_conj_1_a_b);
+  // aterm_list proto_conj_1_b;
+  // proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[1,0]")));
+  // proto_conj_1_b.push_front(aterm_pair(proto_conj_1_a, read_list_from_string("[0,1]")));
+  // const aterm_proto_cflobdd& proto_conj_1 = aterm_proto_cflobdd(proto_conj_1_a, proto_conj_1_b);
+  // test_proto_cflobdd(proto_conj_1);
+  // // combine
+  // const aterm_cflobdd& conj_0 = aterm_cflobdd(proto_conj_0, read_list_from_string("[1,0]"));
+  // test_cflobdd(conj_0);
+  // const aterm_cflobdd& conj_1 = aterm_cflobdd(proto_conj_1, read_list_from_string("[1,0]"));
+  // test_cflobdd(conj_1);
+  // const aterm_cflobdd& conj = conj_0 && conj_1;
+  // test_cflobdd(conj);
 
-  test_cflobdd(conj.exists(0));
-  test_cflobdd(conj.exists(1));
-  test_cflobdd(conj.exists(2));
-  test_cflobdd(conj.exists(3));
-  test_cflobdd(conj.exists(1) || conj.exists(2));
+  // test_cflobdd(conj.exists(0));
+  // test_cflobdd(conj.exists(1));
+  // test_cflobdd(conj.exists(2));
+  // test_cflobdd(conj.exists(3));
+  // test_cflobdd(conj.exists(1) || conj.exists(2));
 
-  test_conjunction_of_biconditions(3);
+  // std::cout << "Start construction\n";
+  // assert(false);
+  // test_conjunction_of_biconditions(10);
 
-  test_cflobdd(read_cflobdd_from_string("p || q && r || s", {"p", "q", "r", "s"}));
+  std::cout << "Start input construction\n";
+  std::ostringstream cflobdd_string_stream;
+  std::vector<std::string> cflobdd_variables;
+  const size_t n = 25;
+  for (size_t i = 1; i <= n; i++)
+  {
+    if (i > 1)
+    {
+      cflobdd_string_stream << " && ";
+    }
+    cflobdd_string_stream << '(' << 'p' << i << " <=> " << 'q' << i << ')';
+    cflobdd_variables.push_back("p" + std::to_string(i));
+  }
+  for (size_t i = n; i > 0; i--)
+  {
+    cflobdd_variables.push_back("q" + std::to_string(i));
+  }
+  const std::string cflobdd_string = cflobdd_string_stream.str();
+  std::cout << cflobdd_string << "\n";
+  std::cout << to_string(cflobdd_variables) << "\n";
+  std::cout << "Start CFLOBDD construction\n";
+  auto start = std::chrono::high_resolution_clock::now();
+  const aterm_cflobdd c = read_cflobdd_from_string(cflobdd_string, cflobdd_variables);
+  auto stop = std::chrono::high_resolution_clock::now();
+  std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+  std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " milliseconds\n";
+
+  // std::cout << "Starting result evaluation\n";
+  // const size_t& configuration_count = std::pow(2, 2 * n);
+  // const size_t& correctness_interval = std::pow(2, n) + 1;
+  // const size_t& level = std::ceil(std::log2(n)) + 1;
+  // std::vector<bool> sigma (std::pow(2, level));
+  // for (size_t i = 0; i < configuration_count; i++)
+  // {
+  //   for (size_t j = 0; j < 2 * n; j++)
+  //   {
+  //     sigma[j] = i & (1 << (2 * n - j - 1));
+  //   }
+  //   const size_t& eval = c.evaluate(sigma);
+  //   // std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
+  //   size_t expected = 1;
+  //   for (size_t j = 0; j < n; j++)
+  //   {
+  //     if (sigma[j] != sigma[2 * n - 1 - j])
+  //     {
+  //       expected = 0;
+  //       break;
+  //     }
+  //   }
+  //   if (eval != expected)
+  //   {
+  //     std::cout << "Unexpected evaluation for " << to_string(sigma) << "\n";
+  //   }
+  //   assert(eval == expected);
+  // }
 
   return 0;
 }
