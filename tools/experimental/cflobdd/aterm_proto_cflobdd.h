@@ -304,6 +304,11 @@ public:
   /// \return The pair product
   aterm_pair pair_product(const aterm_proto_cflobdd& other) const noexcept
   {
+    // Check if the pair product has already been evaluated
+    static std::unordered_map<aterm_pair, aterm_pair> cache;
+    std::unordered_map<aterm_pair, aterm_pair>::const_iterator cached_product = cache.find(aterm_pair(*this, other));
+    if (cached_product != cache.end()) return cached_product->second;
+
     aterm_list values;
     const size_t& this_out_degree = this->out_degree();
     const size_t& other_out_degree = other.out_degree();
@@ -394,11 +399,13 @@ public:
       cvs.push_back(aterm_pair(proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
     }
 
-    // Construct and return the new proto-CFLOBDD and value pairs
-    return aterm_pair(
+    // Construct, cache, and return the new proto-CFLOBDD and value pairs
+    const aterm_pair& pair_product = aterm_pair(
       aterm_proto_cflobdd(entree_proto_cflobdd, aterm_list(cvs.begin(), cvs.end())),
       aterm_list(value_pairs.begin(), value_pairs.end())
     );
+    cache[aterm_pair(*this, other)] = pair_product;
+    return pair_product;
   }
 
   /// \brief Reduce this proto-CFLOBDD according to the new return values.

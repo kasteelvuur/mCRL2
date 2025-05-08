@@ -29,6 +29,11 @@ namespace
 class aterm_pair : public aterm
 {
 public:
+  /// \brief Default constructor.
+  aterm_pair()
+   : aterm()
+  {}
+
   /// \brief Constructs a pair term from two terms.
   /// \param first The first term of the pair.
   /// \param second The second term of the pair.
@@ -60,5 +65,19 @@ public:
 };
 
 } // namespace atermpp
+
+namespace std
+{
+
+/// \brief Standard hash function.
+template<> struct hash<atermpp::aterm_pair>
+{
+  size_t operator()(const atermpp::aterm_pair& t) const
+  {
+    return hash<atermpp::aterm>()(t);
+  }
+};
+
+} // namespace std
 
 #endif // MCRL2_ATERMPP_ATERM_INT_H
