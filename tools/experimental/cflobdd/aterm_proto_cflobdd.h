@@ -61,6 +61,11 @@ inline aterm_pair collapse_classes_leftmost(const aterm_list& values) noexcept
 class aterm_proto_cflobdd : public aterm
 {
 public:
+  /// \brief Default constructor.
+  aterm_proto_cflobdd()
+   : aterm()
+  {}
+
   /// \brief Construct a proto-CFLOBDD term from an aterm.
   /// \param term The aterm to cast
   aterm_proto_cflobdd(const aterm& term)
@@ -413,6 +418,11 @@ public:
   /// \return The reduced proto-CFLOBDD
   aterm_proto_cflobdd reduce(const aterm_list& values) const noexcept
   {
+    // Check if the reduction has already been evaluated
+    static std::unordered_map<aterm_pair, aterm_proto_cflobdd> cache;
+    std::unordered_map<aterm_pair, aterm_proto_cflobdd>::const_iterator cached_reduction = cache.find(aterm_pair(*this, values));
+    if (cached_reduction != cache.end()) return cached_reduction->second;
+
     // This proto-CFLOBDD cannot be reduced according to values that read [0, ..., |values| - 1]
     const size_t& size = values.size();
     size_t next = 0;
@@ -467,6 +477,7 @@ public:
     const aterm_proto_cflobdd& new_c = this_c.reduce(entree_values);
 
     const aterm_proto_cflobdd& new_proto_cflobdd = aterm_proto_cflobdd(new_c, new_cvs);
+    cache[aterm_pair(*this, values)] = new_proto_cflobdd;
     assert(new_proto_cflobdd.is_reduced());
     return new_proto_cflobdd;
   }
