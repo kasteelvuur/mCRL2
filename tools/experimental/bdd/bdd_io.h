@@ -6,47 +6,36 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 //
-/// \file aterm_cflobdd_io.h
+/// \file bdd_io.h
 
 
-#ifndef MCRL2_ATERMPP_ATERM_CFLOBDD_IO_H
-#define MCRL2_ATERMPP_ATERM_CFLOBDD_IO_H
+#ifndef OXIDD_BDD_IO_H
+#define OXIDD_BDD_IO_H
 
 
-#include "aterm_cflobdd.h"
-#include "mcrl2/atermpp/aterm_io.h"
+#include "oxidd/bdd.hpp"
+#include <deque>
+#include <sstream>
 
 
-namespace atermpp
+namespace oxidd
 {
 
-/// \brief Constructs an aterm_cflobdd that encodes a single variable.
-/// \param level The desired level of the aterm_cflobdd.
-/// \param variable_index The index of the encoded variable.
-/// \return The constructed aterm_cflobdd.
-aterm_cflobdd construct_cflobdd(const size_t& level, const size_t& variable_index);
-
-/// \brief Constructs an aterm_proto_cflobdd that encodes a single variable.
-/// \param level The desired level of the aterm_proto_cflobdd.
-/// \param variable_index The index of the encoded variable.
-/// \return The constructed aterm_proto_cflobdd.
-aterm_proto_cflobdd construct_proto_cflobdd(const size_t& level, const size_t& variable_index);
-
-/// \brief Reads an aterm_cflobdd from a string. The string can be in either binary or text format.
+/// \brief Reads a bdd_function from a string. The string can be in either binary or text format.
 ///   Assumes alphanumeric proposition variables and operator precedence from high to low as: !, &&, ||, =>, <=>.
 /// @param s The string to read from.
-/// \return The term corresponding to the string.
-aterm_cflobdd read_cflobdd_from_string(const std::string& s);
+/// \return The bdd corresponding to the string.
+bdd_function read_bdd_from_string(const std::string& s);
 
-/// \brief Reads an aterm_cflobdd from a string. The string can be in either binary or text format.
+/// \brief Reads a bdd_function from a string. The string can be in either binary or text format.
 ///   Assumes alphanumeric proposition variables and operator precedence from high to low as: !, &&, ||, =>, <=>.
 /// \param s The string to read from.
-/// \param variables The variables of the cflobdd in order.
-/// \return The term corresponding to the string.
-aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::vector<std::string>& variables);
+/// \param variables The variables of the bdd in order.
+/// \return The bdd corresponding to the string.
+bdd_function read_bdd_from_string(const std::string& s, const std::vector<std::string>& variables);
 
-/// \brief Reads CFLOBDD terms in textual format from an input stream.
-class text_aterm_cflobdd_istream final : public aterm_istream
+/// \brief Reads BDD terms in textual format from an input stream.
+class text_bdd_istream final
 {
 
 /// \brief Shortcut runtime error for unexpected character
@@ -58,31 +47,31 @@ public:
 };
 
 public:
-  text_aterm_cflobdd_istream(std::istream& os, const std::vector<std::string>& variables);
+  text_bdd_istream(std::istream& os, const std::vector<std::string>& variables);
 
-  void get(aterm& t) override;
+  void get(bdd_function& t);
 
 private:
   /// \brief Parses a proposition formula as an aterm_cflobdd.
-  aterm_cflobdd parse(int& character);
+  bdd_function parse(int& character);
 
   /// \brief Parses a proposition formula centered around a biconditional as an aterm_cflobdd.
-  aterm_cflobdd parse_biconditional(int& character);
+  bdd_function parse_biconditional(int& character);
 
   /// \brief Parses a proposition formula centered around an implication as an aterm_cflobdd.
-  aterm_cflobdd parse_implication(int& character);
+  bdd_function parse_implication(int& character);
 
   /// \brief Parses a proposition formula centered around a disjunction as an aterm_cflobdd.
-  aterm_cflobdd parse_disjunction(int& character);
+  bdd_function parse_disjunction(int& character);
 
   /// \brief Parses a proposition formula centered around a conjunction as an aterm_cflobdd.
-  aterm_cflobdd parse_conjunction(int& character);
+  bdd_function parse_conjunction(int& character);
 
   /// \brief Parses a proposition formula centered around a negation as an aterm_cflobdd.
-  aterm_cflobdd parse_negation(int& character);
+  bdd_function parse_negation(int& character);
 
   /// \brief Parses a singular proposition letter or proposition formula within parentheses as an aterm_cflobdd.
-  aterm_cflobdd parse_primary(int& character);
+  bdd_function parse_primary(int& character);
 
   /// \returns A string indicating the parse error position.
   std::string print_parse_error_position();
@@ -93,8 +82,7 @@ private:
   int next_char(bool skip_whitespace = true, bool required = false);
 
   std::istream& m_stream;
-  const std::vector<std::string>& m_variables;
-  const std::size_t m_level;
+  std::unordered_map<std::string, bdd_function> m_variables;
 
   std::size_t m_line = 0; ///< The line number of the current character.
   std::size_t m_column = 0; ///< The column of the current character.
@@ -105,6 +93,6 @@ private:
   int character; ///< The last character that was read.
 };
 
-} // namespace atermpp
+} // namespace oxidd
 
-#endif // MCRL2_ATERMPP_ATERM_CFLOBDD_IO_H
+#endif // OXIDD_BDD_IO_H

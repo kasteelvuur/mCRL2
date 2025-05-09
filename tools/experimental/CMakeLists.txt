@@ -1,4 +1,5 @@
 set(MCRL2_TOOLS
+  bdd
   besconvert
   cflobdd
   lps2pres

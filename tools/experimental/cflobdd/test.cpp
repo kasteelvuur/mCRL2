@@ -1,5 +1,6 @@
 #include "aterm_cflobdd_io.h"
 #include <chrono>
+#include <thread>
 
 using namespace atermpp;
 
@@ -243,10 +244,11 @@ int main()
   // assert(false);
   // test_conjunction_of_biconditions(10);
 
+  std::this_thread::sleep_for(std::chrono::seconds(1));
   std::cout << "Start input construction\n";
   std::ostringstream cflobdd_string_stream;
   std::vector<std::string> cflobdd_variables;
-  const size_t n = 25;
+  const size_t n = 10;
   for (size_t i = 1; i <= n; i++)
   {
     if (i > 1)
@@ -269,6 +271,7 @@ int main()
   auto stop = std::chrono::high_resolution_clock::now();
   std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " milliseconds\n";
+  std::this_thread::sleep_for(std::chrono::seconds(1));
 
   // std::cout << "Starting result evaluation\n";
   // const size_t& configuration_count = std::pow(2, 2 * n);
