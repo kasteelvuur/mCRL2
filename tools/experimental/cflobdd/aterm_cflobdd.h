@@ -86,6 +86,24 @@ public:
     return 1;
   }
 
+  /// \brief Get the vertex and edge count of the CFLOBDD.
+  /// \return A pair containing the vertex and edge count of the CFLOBDD
+  std::pair<size_t, size_t> count_vertices_and_edges() const noexcept
+  {
+    // Get the vertex and edge count of the proto-CFLOBDD
+    std::unordered_set<aterm> counted;
+    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    auto [vertex_count, edge_count] = c.count_vertices_and_edges(counted);
+
+    // The result mapping has one vertex and edge per result
+    const aterm_list& vs = down_cast<aterm_list>((*this)[1]);
+    const size_t& result_count = vs.size();
+    vertex_count += result_count;
+    edge_count += result_count;
+
+    return {vertex_count, edge_count};
+  }
+
   /// \brief Evaluate this CFLOBDD.
   /// \param sigma Proposition letter assignments in order
   /// \return The result of this CFLOBDD given the proposition letter assignments

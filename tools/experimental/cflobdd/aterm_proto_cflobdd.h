@@ -19,6 +19,8 @@
 #include "mcrl2/atermpp/aterm_int.h"
 #include "mcrl2/atermpp/aterm_list.h"
 
+#include <unordered_set>
+
 
 namespace atermpp
 {
@@ -252,6 +254,69 @@ public:
       // This case should never happen
       assert(false);
       return 0;
+    }
+  }
+
+  /// \brief Get the vertex and edge count of the proto-CFLOBDD.
+  /// \return A pair containing the vertex and edge count of the proto-CFLOBDD
+  std::pair<size_t, size_t> count_vertices_and_edges(std::unordered_set<aterm>& counted) const noexcept
+  {
+    // Count each proto-CFLOBDD only once
+    if (counted.find(*this) != counted.end()) return {0, 0};
+    counted.insert(*this);
+
+    if (this->function() == g_proto_cflobdd_i)
+    {
+      // Constant proto-CFLOBDDs I has an entry and exit vertex, with two corresponding edges
+      return {2, 2};
+    }
+    else if (this->function() == g_proto_cflobdd_v)
+    {
+      // Constant proto-CFLOBDDs V has an entry vertex and two exit vertices, with two corresponding edges
+      return {3, 2};
+    }
+    else if (this->function() == g_proto_cflobdd_c)
+    {
+      // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m)
+      // Entry vertex has an edge to L
+      size_t vertex_count = 1;
+      size_t edge_count = 1;
+
+      // Add the vertices and edges from L
+      const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
+      const auto& [c_vertex_count, c_edge_count]  = c.count_vertices_and_edges(counted);
+      vertex_count += c_vertex_count;
+      edge_count += c_edge_count;
+
+      // The middle vertices have exactly one incoming and outgoing edge each
+      const aterm_list& cvs = down_cast<aterm_list>((*this)[1]);
+      const size_t& middle_vertex_count = cvs.size();
+      vertex_count += middle_vertex_count;
+      edge_count += 2 * middle_vertex_count;
+
+      // Add the vertices and edges from [L_0, ..., L_{n-1}]
+      for (const aterm& aterm_cv : cvs)
+      {
+        const aterm_pair& cv = down_cast<aterm_pair>(aterm_cv);
+        const aterm_proto_cflobdd& c_i = down_cast<aterm_proto_cflobdd>(cv.first());
+        const auto& [c_i_vertex_count, c_i_edge_count]  = c_i.count_vertices_and_edges(counted);
+        vertex_count += c_i_vertex_count;
+        edge_count += c_i_edge_count;
+
+        // The number of return edges per proto-CFLOBDD is equal to its out degree
+        edge_count += c_i.out_degree();
+      }
+
+      // The number of exit vertices is the out degree
+      vertex_count += this->out_degree();
+
+      return {vertex_count, edge_count};
+    }
+    else
+    {
+      // This case should never happen
+      assert(false);
+      return {0, 0};
     }
   }
 
