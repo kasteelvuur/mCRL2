@@ -49,7 +49,7 @@ void test_proto_cflobdd(const aterm_proto_cflobdd& c)
   {
     for (size_t j = 0; j < letter_count; j++)
     {
-      sigma[j] = i & (1 << (letter_count - j - 1));
+      sigma[j] = i & (((size_t) 1) << (letter_count - j - 1));
     }
     const size_t& eval = c.evaluate(sigma);
     std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
@@ -73,7 +73,7 @@ void test_cflobdd(const aterm_cflobdd& c)
   {
     for (size_t j = 0; j < letter_count; j++)
     {
-      sigma[j] = i & (1 << (letter_count - j - 1));
+      sigma[j] = i & (((size_t) 1) << (letter_count - j - 1));
     }
     const size_t& eval = c.evaluate(sigma);
     std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
@@ -128,11 +128,11 @@ void test_conjunction_of_biconditions(const size_t& n = 2)
   {
     for (size_t j = 0; j < 2 * n; j++)
     {
-      sigma[j] = i & (1 << (2 * n - j - 1));
+      sigma[j] = i & (((size_t) 1) << (2 * n - j - 1));
     }
     const size_t& eval = conjuction.evaluate(sigma);
     std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
-    const size_t& expected = !(i % correctness_interval);
+    const size_t& expected = (size_t) !((bool) i % correctness_interval);
     assert(eval == expected);
   }
   std::cout << "\n";
