@@ -167,71 +167,37 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
   const size_t& n = std::pow(2, i);
   const size_t& size = std::pow(2, n / 2);
 
-  // Construct the formula as a disjunction of conjunctions
-  std::ostringstream formula_stream;
-  for (size_t x = 0; x < size; x++)
+  // Construct the formula
+  std::string formula_string;
+  for (size_t j = n / 2; j > 0; j--)
   {
-    for (size_t y = 0; y < size; y++)
+    std::ostringstream formula_stream;
+    const std::string& j_string = std::to_string(j);
+    const std::string& x_string = "x" + j_string;
+    const std::string& y_string = "y" + j_string;
+
+    if (empty(formula_string))
     {
-      std::ostringstream subformula_stream;
-      subformula_stream << "(";
-
-      bool result = true;
-      size_t middle = size / 2;
-      size_t x_j = x;
-      size_t y_j = y;
-
-      for (size_t j = 0; j < n / 2; j++)
-      {
-        // Add the current position to the subformula
-        if (j > 0)
-        {
-          subformula_stream << " && ";
-        }
-        if (x_j < middle)
-        {
-          subformula_stream << "!";
-        }
-        subformula_stream << "x" << std::to_string(j) << " && ";
-        if (y_j < middle)
-        {
-          subformula_stream << "!";
-        }
-        subformula_stream << "y" << std::to_string(j);
-
-        // Determine the result of the current position
-        if (x_j >= middle && y_j >= middle)
-        {
-          result = !result;
-        }
-
-        // Step to the next boolean
-        x_j %= middle;
-        y_j %= middle;
-        middle /= 2;
-      }
-
-      // Add to the formula of the result for the current position is true
-      if (result)
-      {
-        if (x > 0 || y > 0)
-        {
-          formula_stream << " || ";
-        }
-        formula_stream << subformula_stream.str() << ")";
-      }
+      formula_stream << "!(" << x_string << " && " << y_string << ")";
     }
+    else
+    {
+      formula_stream << "(!(" << x_string << " && " << y_string << ") && " << formula_string
+        << " || " << x_string << " && " << y_string << " && !" << formula_string << ")";
+    }
+
+    formula_string = formula_stream.str();
   }
 
   // Construct the variables in order
   std::vector<std::string> variables;
-  for (size_t j = 0; j < n / 2; j++)
+  for (size_t j = 1; j <= n / 2; j++)
   {
     variables.push_back("x" + std::to_string(j));
     variables.push_back("y" + std::to_string(j));
   }
 
-  return {formula_stream.str(), variables};
+  return {formula_string, variables};
 }
 
 int main()
