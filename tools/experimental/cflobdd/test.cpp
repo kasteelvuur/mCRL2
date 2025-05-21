@@ -160,9 +160,83 @@ std::pair<std::string, std::vector<std::string>> construct_pq(const size_t& n)
   return {formula_stream.str(), variables};
 }
 
+std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t& i)
+{
+  // Calculate n and the size of the matrix as size x size
+  assert(i >= 1);
+  const size_t& n = std::pow(2, i);
+  const size_t& size = std::pow(2, n / 2);
+
+  // Construct the formula as a disjunction of conjunctions
+  std::ostringstream formula_stream;
+  for (size_t x = 0; x < size; x++)
+  {
+    for (size_t y = 0; y < size; y++)
+    {
+      std::ostringstream subformula_stream;
+      subformula_stream << "(";
+
+      bool result = true;
+      size_t middle = size / 2;
+      size_t x_j = x;
+      size_t y_j = y;
+
+      for (size_t j = 0; j < n / 2; j++)
+      {
+        // Add the current position to the subformula
+        if (j > 0)
+        {
+          subformula_stream << " && ";
+        }
+        if (x_j < middle)
+        {
+          subformula_stream << "!";
+        }
+        subformula_stream << "x" << std::to_string(j) << " && ";
+        if (y_j < middle)
+        {
+          subformula_stream << "!";
+        }
+        subformula_stream << "y" << std::to_string(j);
+
+        // Determine the result of the current position
+        if (x_j >= middle && y_j >= middle)
+        {
+          result = !result;
+        }
+
+        // Step to the next boolean
+        x_j %= middle;
+        y_j %= middle;
+        middle /= 2;
+      }
+
+      // Add to the formula of the result for the current position is true
+      if (result)
+      {
+        if (x > 0 || y > 0)
+        {
+          formula_stream << " || ";
+        }
+        formula_stream << subformula_stream.str() << ")";
+      }
+    }
+  }
+
+  // Construct the variables in order
+  std::vector<std::string> variables;
+  for (size_t j = 0; j < n / 2; j++)
+  {
+    variables.push_back("x" + std::to_string(j));
+    variables.push_back("y" + std::to_string(j));
+  }
+
+  return {formula_stream.str(), variables};
+}
+
 int main()
 {
-  const auto& [formula, variables] = construct_pq(1);
+  const auto& [formula, variables] = construct_hadamard(1);
   std::cout << formula << "\n";
   std::cout << to_string(variables) << "\n";
   std::cout << "Start CFLOBDD construction\n";
@@ -171,7 +245,6 @@ int main()
   auto stop = std::chrono::high_resolution_clock::now();
   std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
   std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " milliseconds\n";
-  std::cout << "Is reduced: " << cflobdd.is_reduced() << "\n";
   const auto& [vertex_count, edge_count] = cflobdd.count_vertices_and_edges();
   std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
 
