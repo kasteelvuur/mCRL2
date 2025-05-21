@@ -132,7 +132,7 @@ void test_conjunction_of_biconditions(const size_t& n = 2)
     }
     const size_t& eval = conjuction.evaluate(sigma);
     std::cout << to_string(sigma) << " evaluates to " << eval << "\n";
-    const size_t& expected = (size_t) !((bool) i % correctness_interval);
+    const size_t& expected = (size_t) !((bool) (i % correctness_interval));
     assert(eval == expected);
   }
   std::cout << "\n";
@@ -167,33 +167,28 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
   const size_t& n = std::pow(2, i);
   const size_t& size = std::pow(2, n / 2);
 
-  // Construct the formula
-  std::string formula;
-  for (size_t j = n / 2; j > 0; j--)
+  // Construct the formula and variables
+  std::ostringstream formula_stream;
+  std::vector<std::string> variables;
+  for (size_t j = 1; j <= n / 2; j++)
   {
     const std::string& j_string = std::to_string(j);
     const std::string& x_string = "x" + j_string;
     const std::string& y_string = "y" + j_string;
 
-    if (empty(formula))
+    // Formula
+    if (j > 1)
     {
-      formula = "!(" + x_string + " && " + y_string + ")";
+      formula_stream << " <=> ";
     }
-    else
-    {
-      formula = "(!(" + x_string + " && " + y_string + ") <=> " + formula + ")";
-    }
+    formula_stream << "!(" << x_string << " && " << y_string << ")";
+
+    // Variables
+    variables.push_back(x_string);
+    variables.push_back(y_string);
   }
 
-  // Construct the variables in order
-  std::vector<std::string> variables;
-  for (size_t j = 1; j <= n / 2; j++)
-  {
-    variables.push_back("x" + std::to_string(j));
-    variables.push_back("y" + std::to_string(j));
-  }
-
-  return {formula, variables};
+  return {formula_stream.str(), variables};
 }
 
 int main()
