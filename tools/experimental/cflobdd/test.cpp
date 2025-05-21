@@ -168,25 +168,21 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
   const size_t& size = std::pow(2, n / 2);
 
   // Construct the formula
-  std::string formula_string;
+  std::string formula;
   for (size_t j = n / 2; j > 0; j--)
   {
-    std::ostringstream formula_stream;
     const std::string& j_string = std::to_string(j);
     const std::string& x_string = "x" + j_string;
     const std::string& y_string = "y" + j_string;
 
-    if (empty(formula_string))
+    if (empty(formula))
     {
-      formula_stream << "!(" << x_string << " && " << y_string << ")";
+      formula = "!(" + x_string + " && " + y_string + ")";
     }
     else
     {
-      formula_stream << "(!(" << x_string << " && " << y_string << ") && " << formula_string
-        << " || " << x_string << " && " << y_string << " && !" << formula_string << ")";
+      formula = "(!(" + x_string + " && " + y_string + ") <=> " + formula + ")";
     }
-
-    formula_string = formula_stream.str();
   }
 
   // Construct the variables in order
@@ -197,7 +193,7 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
     variables.push_back("y" + std::to_string(j));
   }
 
-  return {formula_string, variables};
+  return {formula, variables};
 }
 
 int main()
