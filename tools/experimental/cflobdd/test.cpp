@@ -200,8 +200,8 @@ int main()
   auto start = std::chrono::high_resolution_clock::now();
   const aterm_cflobdd cflobdd = read_cflobdd_from_string(formula, variables);
   auto stop = std::chrono::high_resolution_clock::now();
-  std::chrono::milliseconds duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-  std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " milliseconds\n";
+  std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " microseconds\n";
   const auto& [vertex_count, edge_count] = cflobdd.count_vertices_and_edges();
   std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
 
