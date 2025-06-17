@@ -191,6 +191,88 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
   return {formula_stream.str(), variables};
 }
 
+std::pair<aterm_cflobdd, std::vector<aterm_cflobdd>> construct_reachability(const size_t& n)
+{
+  // Initial states and variables
+  std::ostringstream initial_formula_stream;
+  std::vector<std::string> variables;
+  for (size_t i = 1; i <= n; i++)
+  {
+    const std::string& variable = "p" + std::to_string(i);
+    if (i > 1)
+    {
+      initial_formula_stream << " && ";
+    }
+    initial_formula_stream << "!" << variable;
+    variables.push_back(variable);
+  }
+  const aterm_cflobdd& initial = read_cflobdd_from_string(initial_formula_stream.str(), variables);
+
+  // Transition relation
+  std::vector<aterm_cflobdd> transition_relations;
+  const size_t& state_count = std::pow(2, n);
+  for (size_t i = 0; i < state_count; i++)
+  {
+    std::ostringstream transition_formula_stream;
+
+    // Get the binary representation of the current number in booleans
+    std::vector<bool> binary_rep (n);
+    for (size_t j = 0; j < n; j++)
+    {
+      binary_rep[j] = i & (((size_t) 1) << (n - j - 1));
+    }
+    std::cout << i << " is represented by " << to_string(binary_rep) << "\n";
+
+    // Add a transition to all states with one 0 flipped to 1
+    bool first = true;
+    for (size_t j = 0; j < n; j++)
+    {
+      if (!binary_rep[j])
+      {
+        if (!first)
+        {
+          transition_formula_stream << " || ";
+        }
+        first = false;
+
+        for (size_t k = 0; k < n; k++)
+        {
+          const std::string& variable = "p" + std::to_string(k);
+          if (k > 0)
+          {
+            transition_formula_stream << " && ";
+          }
+          if (k != j && !binary_rep[k])
+          {
+            transition_formula_stream << "!";
+          }
+          transition_formula_stream << variable;
+        }
+      }
+    }
+
+    // Special case: self loop for state with all 1
+    if (i == state_count - 1)
+    {
+      for (size_t j = 0; j < n; j++)
+      {
+        const std::string& variable = "p" + std::to_string(j);
+        if (j > 0)
+        {
+          transition_formula_stream << " && ";
+        }
+        transition_formula_stream << variable;
+      }
+    }
+
+    // Calculate this transition relation
+    const aterm_cflobdd& transition_relation = read_cflobdd_from_string(transition_formula_stream.str(), variables);
+    transition_relations.push_back(transition_relation);
+  }
+
+  return {initial, transition_relations};
+}
+
 int main()
 {
   const auto& [formula, variables] = construct_hadamard(1);
