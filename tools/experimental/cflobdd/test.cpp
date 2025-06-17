@@ -152,6 +152,15 @@ std::pair<std::string, std::vector<std::string>> construct_pq(const size_t& n)
     formula_stream << '(' << 'p' << i << " <=> " << 'q' << i << ')';
     variables.push_back("p" + std::to_string(i));
   }
+
+  // Fill variable list to some power of 2
+  // const size_t& size = variables.size();
+  // const size_t& next_power = std::pow(2, std::ceil(std::log2(size)));
+  // for (size_t i = size; i < next_power; i++)
+  // {
+  //   variables.push_back("");
+  // }
+
   for (size_t i = n; i > 0; i--)
   {
     variables.push_back("q" + std::to_string(i));
@@ -196,10 +205,10 @@ std::pair<aterm_cflobdd, std::vector<aterm_cflobdd>> construct_reachability(cons
   // Initial states and variables
   std::ostringstream initial_formula_stream;
   std::vector<std::string> variables;
-  for (size_t i = 1; i <= n; i++)
+  for (size_t i = 0; i < n; i++)
   {
     const std::string& variable = "p" + std::to_string(i);
-    if (i > 1)
+    if (i > 0)
     {
       initial_formula_stream << " && ";
     }
@@ -221,7 +230,6 @@ std::pair<aterm_cflobdd, std::vector<aterm_cflobdd>> construct_reachability(cons
     {
       binary_rep[j] = i & (((size_t) 1) << (n - j - 1));
     }
-    std::cout << i << " is represented by " << to_string(binary_rep) << "\n";
 
     // Add a transition to all states with one 0 flipped to 1
     bool first = true;
@@ -275,17 +283,46 @@ std::pair<aterm_cflobdd, std::vector<aterm_cflobdd>> construct_reachability(cons
 
 int main()
 {
-  const auto& [formula, variables] = construct_hadamard(1);
-  std::cout << formula << "\n";
-  std::cout << to_string(variables) << "\n";
-  std::cout << "Start CFLOBDD construction\n";
-  auto start = std::chrono::high_resolution_clock::now();
-  const aterm_cflobdd cflobdd = read_cflobdd_from_string(formula, variables);
-  auto stop = std::chrono::high_resolution_clock::now();
-  std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " microseconds\n";
-  const auto& [vertex_count, edge_count] = cflobdd.count_vertices_and_edges();
+  const size_t& n = 2; // NOTE: must currently be power of two due to eval construction
+  const auto& [initial, transition_relations] = construct_reachability(n);
+  aterm_cflobdd reach_old = initial;
+  aterm_cflobdd reach_new = initial;
+  do
+  {
+    reach_old = reach_new;
+
+    const size_t& state_count = std::pow(2, n);
+    for (size_t i = 0; i < state_count; i++)
+    {
+      // Get the binary representation of the current number in booleans
+      std::vector<bool> sigma (n);
+      for (size_t j = 0; j < n; j++)
+      {
+        sigma[j] = i & (((size_t) 1) << (n - j - 1));
+      }
+
+      // If this state is reachable, then add all states directly reachable from here
+      std:: cout << to_string(sigma) << "\t" << reach_old.evaluate(sigma) << "\n";
+      if (reach_old.evaluate(sigma))
+      {
+        reach_new = reach_new || transition_relations[i];
+      }
+    }
+  } while (reach_old != reach_new);
+  std::cout << reach_new << "\n";
+  const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
   std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
+  
+  // std::cout << formula << "\n";
+  // std::cout << to_string(variables) << "\n";
+  // std::cout << "Start CFLOBDD construction\n";
+  // auto start = std::chrono::high_resolution_clock::now();
+  // const aterm_cflobdd cflobdd = read_cflobdd_from_string(formula, variables);
+  // auto stop = std::chrono::high_resolution_clock::now();
+  // std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  // std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " microseconds\n";
+  // const auto& [vertex_count, edge_count] = cflobdd.count_vertices_and_edges();
+  // std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
 
   return 0;
 }
