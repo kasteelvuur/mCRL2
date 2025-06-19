@@ -200,116 +200,155 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
   return {formula_stream.str(), variables};
 }
 
-std::pair<aterm_cflobdd, std::vector<aterm_cflobdd>> construct_reachability(const size_t& n)
+std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
 {
+  // Variables
+  std::vector<std::string> variables;
+  const size_t& next_power_two = std::pow(2, std::ceil(std::log2(n)));
+  for (size_t i = 1; i <= next_power_two; i++)
+  {
+    if (i <= n)
+    {
+      variables.push_back("p" + std::to_string(i));
+    }
+    else
+    {
+      variables.push_back("");
+    }
+  }
+  for (size_t i = 1; i <= n; i++)
+  {
+    variables.push_back("q" + std::to_string(i));
+  }
+
   // Initial states and variables
   std::ostringstream initial_formula_stream;
-  std::vector<std::string> variables;
-  for (size_t i = 0; i < n; i++)
+  for (size_t i = 1; i <= n; i++)
   {
     const std::string& variable = "p" + std::to_string(i);
-    if (i > 0)
+    if (i > 1)
     {
       initial_formula_stream << " && ";
     }
     initial_formula_stream << "!" << variable;
-    variables.push_back(variable);
   }
   const aterm_cflobdd& initial = read_cflobdd_from_string(initial_formula_stream.str(), variables);
 
   // Transition relation
-  std::vector<aterm_cflobdd> transition_relations;
+  std::ostringstream transition_formula_stream;
   const size_t& state_count = std::pow(2, n);
   for (size_t i = 0; i < state_count; i++)
   {
-    std::ostringstream transition_formula_stream;
+    if (i > 0)
+    {
+      transition_formula_stream << " || ";
+    }
+    transition_formula_stream << "(";
 
     // Get the binary representation of the current number in booleans
     std::vector<bool> binary_rep (n);
     for (size_t j = 0; j < n; j++)
     {
       binary_rep[j] = i & (((size_t) 1) << (n - j - 1));
+      if (j > 0)
+      {
+        transition_formula_stream << " && ";
+      }
+      if (!binary_rep[j])
+      {
+        transition_formula_stream << "!";
+      }
+      transition_formula_stream << "q" << std::to_string(j + 1);
     }
 
     // Add a transition to all states with one 0 flipped to 1
-    bool first = true;
+    for (size_t j = 0; j < n; j++)
+    {
+      if (binary_rep[j])
+      {
+        transition_formula_stream << " && p" << std::to_string(j + 1);
+      }
+    }
+    bool first_j = true;
     for (size_t j = 0; j < n; j++)
     {
       if (!binary_rep[j])
       {
-        if (!first)
+        if (first_j)
+        {
+          transition_formula_stream << " && (";
+          first_j = false;
+        }
+        else
         {
           transition_formula_stream << " || ";
         }
-        first = false;
 
+        bool first_k = true;
         for (size_t k = 0; k < n; k++)
         {
-          const std::string& variable = "p" + std::to_string(k);
-          if (k > 0)
+          if (!binary_rep[k])
           {
-            transition_formula_stream << " && ";
+            if (!first_k)
+            {
+              transition_formula_stream << " && ";
+            }
+            first_k = false;
+
+            if (k != j)
+            {
+              transition_formula_stream << "!";
+            }
+            transition_formula_stream << "p" << std::to_string(k + 1);
           }
-          if (k != j && !binary_rep[k])
-          {
-            transition_formula_stream << "!";
-          }
-          transition_formula_stream << variable;
         }
       }
     }
 
-    // Special case: self loop for state with all 1
-    if (i == state_count - 1)
+    if (first_j)
     {
-      for (size_t j = 0; j < n; j++)
-      {
-        const std::string& variable = "p" + std::to_string(j);
-        if (j > 0)
-        {
-          transition_formula_stream << " && ";
-        }
-        transition_formula_stream << variable;
-      }
+      transition_formula_stream << ")";
     }
-
-    // Calculate this transition relation
-    const aterm_cflobdd& transition_relation = read_cflobdd_from_string(transition_formula_stream.str(), variables);
-    transition_relations.push_back(transition_relation);
+    else
+    {
+      transition_formula_stream << "))";
+    }
   }
+  std::string temp = transition_formula_stream.str();
+  std::cout << to_string(variables) << "\n" << temp << "\n";
+  const aterm_cflobdd& transition_relation = read_cflobdd_from_string(temp, variables);
 
-  return {initial, transition_relations};
+  return {initial, transition_relation};
 }
 
 int main()
 {
-  const size_t& n = 2; // NOTE: must currently be power of two due to eval construction
-  const auto& [initial, transition_relations] = construct_reachability(n);
+  const size_t& n = 3;
+  const auto& [initial, transition_relation] = construct_reachability(n);
   aterm_cflobdd reach_old = initial;
   aterm_cflobdd reach_new = initial;
-  do
-  {
-    reach_old = reach_new;
+  // do
+  // {
+  //   reach_old = reach_new;
 
-    const size_t& state_count = std::pow(2, n);
-    for (size_t i = 0; i < state_count; i++)
-    {
-      // Get the binary representation of the current number in booleans
-      std::vector<bool> sigma (n);
-      for (size_t j = 0; j < n; j++)
-      {
-        sigma[j] = i & (((size_t) 1) << (n - j - 1));
-      }
+  //   const size_t& state_count = std::pow(2, n);
+  //   for (size_t i = 0; i < state_count; i++)
+  //   {
+  //     // Get the binary representation of the current number in booleans
+  //     std::vector<bool> sigma (n);
+  //     for (size_t j = 0; j < n; j++)
+  //     {
+  //       sigma[j] = i & (((size_t) 1) << (n - j - 1));
+  //     }
 
-      // If this state is reachable, then add all states directly reachable from here
-      std:: cout << to_string(sigma) << "\t" << reach_old.evaluate(sigma) << "\n";
-      if (reach_old.evaluate(sigma))
-      {
-        reach_new = reach_new || transition_relations[i];
-      }
-    }
-  } while (reach_old != reach_new);
-  std::cout << reach_new << "\n";
+  //     // If this state is reachable, then add all states directly reachable from here
+  //     if (reach_old.evaluate(sigma))
+  //     {
+  //       reach_new = reach_new || transition_relation;
+  //     }
+  //   }
+  // } while (reach_old != reach_new);
+  // std::cout << reach_new << "\n";
   const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
   std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
   
