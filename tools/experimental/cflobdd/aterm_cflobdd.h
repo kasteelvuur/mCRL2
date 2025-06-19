@@ -262,7 +262,6 @@ public:
     aterm_cflobdd current = *this;
     for (const size_t& index : indices)
     {
-      std::cout << index << "\n";
       const aterm_cflobdd& fixed_false = current.fix(index, aterm_int(0));
       const aterm_cflobdd& fixed_true = current.fix(index, aterm_int(1));
       current = fixed_false || fixed_true;

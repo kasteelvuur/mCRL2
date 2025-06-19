@@ -314,9 +314,7 @@ std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
       transition_formula_stream << "))";
     }
   }
-  std::string temp = transition_formula_stream.str();
-  std::cout << to_string(variables) << "\n" << temp << "\n";
-  const aterm_cflobdd& transition_relation = read_cflobdd_from_string(temp, variables);
+  const aterm_cflobdd& transition_relation = read_cflobdd_from_string(transition_formula_stream.str(), variables);
 
   return {initial, transition_relation};
 }
@@ -324,31 +322,35 @@ std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
 int main()
 {
   const size_t& n = 3;
+  const size_t& next_power_two = std::pow(2, std::ceil(std::log2(n)));
+  std::vector<size_t> indices_q;
+  for (size_t i = next_power_two; i < next_power_two + n; i++)
+  {
+    indices_q.push_back(i);
+  }
+
   const auto& [initial, transition_relation] = construct_reachability(n);
-  aterm_cflobdd reach_old = initial;
+  aterm_cflobdd reach_p = initial;
   aterm_cflobdd reach_new = initial;
-  // do
-  // {
-  //   reach_old = reach_new;
 
-  //   const size_t& state_count = std::pow(2, n);
-  //   for (size_t i = 0; i < state_count; i++)
-  //   {
-  //     // Get the binary representation of the current number in booleans
-  //     std::vector<bool> sigma (n);
-  //     for (size_t j = 0; j < n; j++)
-  //     {
-  //       sigma[j] = i & (((size_t) 1) << (n - j - 1));
-  //     }
+  do
+  {
+    // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
+    reach_p = reach_new;
+    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>(reach_p[0]);
+    const aterm_proto_cflobdd& c_p = down_cast<aterm_proto_cflobdd>(c[0]);
+    const aterm_cflobdd& reach_q = aterm_cflobdd(
+      aterm_proto_cflobdd(
+        aterm_proto_cflobdd::no_distinction(c_p.level()),
+        {aterm_pair(c_p, read_list_from_string(c[1].size() > 1 ? "[0,1]" : "[0]"))}
+      ),
+      down_cast<aterm_list>(reach_p[1])
+    );
 
-  //     // If this state is reachable, then add all states directly reachable from here
-  //     if (reach_old.evaluate(sigma))
-  //     {
-  //       reach_new = reach_new || transition_relation;
-  //     }
-  //   }
-  // } while (reach_old != reach_new);
-  // std::cout << reach_new << "\n";
+    // Calculate the new reachability iteration
+    reach_new = reach_p || (reach_q && transition_relation).exists(indices_q);
+  } while (reach_p != reach_new);
+  std::cout << reach_new << "\n";
   const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
   std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
   
