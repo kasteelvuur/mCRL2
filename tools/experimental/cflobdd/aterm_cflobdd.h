@@ -255,13 +255,19 @@ public:
   }
 
   /// \brief Calculate the existential quantification of this CFLOBDD.
-  /// \param index The index of the proposition letter that should be used
+  /// \param indices A list of indices of the proposition letters that should be used
   /// \return The new CFLOBDD
-  aterm_cflobdd exists(const size_t& index) const noexcept
+  aterm_cflobdd exists(const std::vector<size_t>& indices) const noexcept
   {
-    const aterm_cflobdd& fixed_false = this->fix(index, aterm_int(0));
-    const aterm_cflobdd& fixed_true = this->fix(index, aterm_int(1));
-    return fixed_false || fixed_true;
+    aterm_cflobdd current = *this;
+    for (const size_t& index : indices)
+    {
+      std::cout << index << "\n";
+      const aterm_cflobdd& fixed_false = current.fix(index, aterm_int(0));
+      const aterm_cflobdd& fixed_true = current.fix(index, aterm_int(1));
+      current = fixed_false || fixed_true;
+    }
+    return current;
   }
 
   /// \brief Fix a proposition letter assignment.

@@ -164,9 +164,9 @@ bdd_function text_bdd_istream::parse_negation(int& character)
   // Allow only ! notation
   if (character == '!')
   {
-    // Continue parsing on the right at the next level of binding and negate the result 
+    // Continue parsing on the right at the same level of binding to allow double negations and negate the result
     character = next_char(true, true);
-    return ~parse_primary(character);
+    return ~parse_negation(character);
   }
 
   // Continue parsing at the next level of binding
