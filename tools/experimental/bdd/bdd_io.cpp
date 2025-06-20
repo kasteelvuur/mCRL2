@@ -32,17 +32,31 @@ bdd_function read_bdd_from_string(const std::string& s, const std::vector<std::s
   return bdd;
 }
 
+bdd_function read_bdd_from_string(const std::string& s, const std::unordered_map<std::string, bdd_function>& variables)
+{
+  std::stringstream ss(s);
+  bdd_function bdd;
+  text_bdd_istream(ss, variables).get(bdd);
+  return bdd;
+}
+
 text_bdd_istream::text_bdd_istream(std::istream& is, const std::vector<std::string>& variables)
   : m_stream(is)
 {
   character = next_char();
 
   // Map the variables to their corresponding BDDs
-  bdd_manager mgr(5 * std::pow(2, variables.size() / 2), 1024, 1);
+  bdd_manager mgr(std::pow(2, 31), 1024, 1);
   for (std::string variable : variables)
   {
     m_variables[variable] = mgr.new_var();
   }
+}
+
+text_bdd_istream::text_bdd_istream(std::istream& is, const std::unordered_map<std::string, bdd_function>& variables)
+  : m_stream(is), m_variables(variables)
+{
+  character = next_char();
 }
 
 void text_bdd_istream::get(bdd_function& bdd)

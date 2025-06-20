@@ -34,6 +34,13 @@ bdd_function read_bdd_from_string(const std::string& s);
 /// \return The bdd corresponding to the string.
 bdd_function read_bdd_from_string(const std::string& s, const std::vector<std::string>& variables);
 
+/// \brief Reads a bdd_function from a string. The string can be in either binary or text format.
+///   Assumes alphanumeric proposition variables and operator precedence from high to low as: !, &&, ||, =>, <=>.
+/// \param s The string to read from.
+/// \param variables The variables names mapped to the corresponding bdd funcions.
+/// \return The bdd corresponding to the string.
+bdd_function read_bdd_from_string(const std::string& s, const std::unordered_map<std::string, bdd_function>& variables);
+
 /// \brief Reads BDD terms in textual format from an input stream.
 class text_bdd_istream final
 {
@@ -48,6 +55,8 @@ public:
 
 public:
   text_bdd_istream(std::istream& os, const std::vector<std::string>& variables);
+
+  text_bdd_istream(std::istream& os, const std::unordered_map<std::string, bdd_function>& variables);
 
   void get(bdd_function& t);
 
