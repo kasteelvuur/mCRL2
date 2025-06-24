@@ -322,12 +322,14 @@ std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
 int main()
 {
   const size_t& n = 3;
-  const size_t& next_power_two = std::pow(2, std::ceil(std::log2(n)));
+  const size_t& level = std::ceil(std::log2(n));
+  const size_t& next_power_two = std::pow(2, level);
   std::vector<size_t> indices_q;
   for (size_t i = next_power_two; i < next_power_two + n; i++)
   {
     indices_q.push_back(i);
   }
+  const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd::no_distinction(level);
 
   const auto& [initial, transition_relation] = construct_reachability(n);
   aterm_cflobdd reach_p = initial;
@@ -335,20 +337,26 @@ int main()
 
   do
   {
+    const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
+    std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
-    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>(reach_p[0]);
-    const aterm_proto_cflobdd& c_p = down_cast<aterm_proto_cflobdd>(c[0]);
     const aterm_cflobdd& reach_q = aterm_cflobdd(
       aterm_proto_cflobdd(
-        aterm_proto_cflobdd::no_distinction(c_p.level()),
-        {aterm_pair(c_p, read_list_from_string(c[1].size() > 1 ? "[0,1]" : "[0]"))}
+        no_distinction,
+        {aterm_pair(reach_p[0][0], read_list_from_string(reach_p[0][1].size() > 1 ? "[0,1]" : "[0]"))}
       ),
       down_cast<aterm_list>(reach_p[1])
     );
 
     // Calculate the new reachability iteration
     reach_new = reach_p || (reach_q && transition_relation).exists(indices_q);
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Step duration: " << duration.count() << " microseconds\n";
   } while (reach_p != reach_new);
   std::cout << reach_new << "\n";
   const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();

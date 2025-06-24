@@ -78,9 +78,6 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
   for (size_t i = 1; i <= n; i++)
   {
     variables["p" + std::to_string(i)] = mgr.new_var();
-  }
-  for (size_t i = 1; i <= n; i++)
-  {
     variables["q" + std::to_string(i)] = mgr.new_var();
   }
 
@@ -191,26 +188,32 @@ int main()
   {
     variables_q &= variables.at("q" + std::to_string(i));
   }
+  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
+  for (const auto& [key, value] : variables)
+  {
+    if (key[0] == 'p')
+    {
+      substitution_list.push_back({value, variables.at("q" + key.substr(1, key.size() - 1))});
+    }
+  }
   bdd_function reach_p = initial;
   bdd_function reach_new = initial;
 
   do
   {
     std::cout << "Node count: " << reach_new.node_count() << "\n";
+    auto start = std::chrono::high_resolution_clock::now();
+
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
-    std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
-    for (const auto& [key, value] : variables)
-    {
-      if (key[0] == 'p')
-      {
-        substitution_list.push_back({value, variables.at("q" + key.substr(1, key.size() - 1))});
-      }
-    }
     const bdd_function& reach_q = reach_p.substitute(bdd_substitution(substitution_list.begin(), substitution_list.end()));
 
     // Calculate the new reachability iteration
     reach_new = reach_p | (reach_q & transition_relation).exists(variables_q);
+
+    auto stop = std::chrono::high_resolution_clock::now();
+    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Step duration: " << duration.count() << " microseconds\n";
   } while (reach_p != reach_new);
   // std::cout << "Node count: " << reach_new.node_count() << "\n";
 
