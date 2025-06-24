@@ -73,116 +73,89 @@ std::pair<std::string, std::vector<std::string>> construct_hadamard(const size_t
 std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_function> construct_reachability(const size_t& n)
 {
   // Variables
-  bdd_manager mgr(std::pow(2, 31), 1024, 1);
+  bdd_manager mgr(std::pow(2, 20), 1024, 1);
   std::unordered_map<std::string, bdd_function> variables;
+  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
   for (size_t i = 1; i <= n; i++)
   {
-    variables["p" + std::to_string(i)] = mgr.new_var();
-    variables["q" + std::to_string(i)] = mgr.new_var();
+    const bdd_function& variable_p = mgr.new_var();
+    const bdd_function& variable_q = mgr.new_var();
+    variables["p" + std::to_string(i)] = variable_p;
+    variables["q" + std::to_string(i)] = variable_q;
+    substitution_list.push_back({variable_p, variable_q});
   }
+  const bdd_substitution substitution(substitution_list.begin(), substitution_list.end());
 
-  // Initial states and variables
-  std::ostringstream initial_formula_stream;
-  for (size_t i = 1; i <= n; i++)
-  {
-    const std::string& variable = "p" + std::to_string(i);
-    if (i > 1)
-    {
-      initial_formula_stream << " && ";
-    }
-    initial_formula_stream << "!" << variable;
-  }
-  const bdd_function& initial = read_bdd_from_string(initial_formula_stream.str(), variables);
-
-  // Transition relation
-  std::ostringstream transition_formula_stream;
+  // Predefine all states as BDDs
   const size_t& state_count = std::pow(2, n);
+  std::vector<bdd_function> states;
   for (size_t i = 0; i < state_count; i++)
   {
-    if (i > 0)
+    bdd_function state_formula;
+    for (size_t j = 0; j < n; j++)
     {
-      transition_formula_stream << " || ";
-    }
-    transition_formula_stream << "(";
+      bdd_function variable_formula = variables.at("p" + std::to_string(j + 1));
+      if (!((bool) (i & (((size_t) 1) << (n - j - 1)))))
+      {
+        variable_formula = ~variable_formula;
+      }
 
-    // Get the binary representation of the current number in booleans
-    std::vector<bool> binary_rep (n);
-    for (size_t j = 0; j < n; j++)
-    {
-      binary_rep[j] = i & (((size_t) 1) << (n - j - 1));
-      if (j > 0)
+      if (state_formula.is_invalid())
       {
-        transition_formula_stream << " && ";
+        state_formula = variable_formula;
       }
-      if (!binary_rep[j])
+      else
       {
-        transition_formula_stream << "!";
+        state_formula = state_formula & variable_formula;
       }
-      transition_formula_stream << "q" << std::to_string(j + 1);
     }
+    states.push_back(state_formula);
+  }
 
-    // Add a transition to all states with one 0 flipped to 1
-    for (size_t j = 0; j < n; j++)
+  // Initial states only contains the first state
+  const bdd_function& initial_formula = states[0];
+
+  // Transition relation
+  bdd_function transition_formula;
+  std::ostringstream transition_formula_stream;
+  for (size_t i = 0; i < state_count - 1; i++)
+  {
+    const bdd_function& source_state = states[i].substitute(substitution);
+    bdd_function target_states;
+    for (size_t j = i + 1; j < state_count; j++)
     {
-      if (binary_rep[j])
+      const size_t& x = i ^ j;
+      if (x && !(x & (x - 1)))
       {
-        transition_formula_stream << " && p" << std::to_string(j + 1);
-      }
-    }
-    bool first_j = true;
-    for (size_t j = 0; j < n; j++)
-    {
-      if (!binary_rep[j])
-      {
-        if (first_j)
+        if (target_states.is_invalid())
         {
-          transition_formula_stream << " && (";
-          first_j = false;
+          target_states = states[j];
         }
         else
         {
-          transition_formula_stream << " || ";
-        }
-
-        bool first_k = true;
-        for (size_t k = 0; k < n; k++)
-        {
-          if (!binary_rep[k])
-          {
-            if (!first_k)
-            {
-              transition_formula_stream << " && ";
-            }
-            first_k = false;
-
-            if (k != j)
-            {
-              transition_formula_stream << "!";
-            }
-            transition_formula_stream << "p" << std::to_string(k + 1);
-          }
+          target_states = target_states | states[j];
         }
       }
     }
 
-    if (first_j)
+    if (transition_formula.is_invalid())
     {
-      transition_formula_stream << ")";
+      transition_formula = source_state & target_states;
     }
     else
     {
-      transition_formula_stream << "))";
+      transition_formula = transition_formula | (source_state & target_states);
     }
   }
-  const bdd_function& transition_relation = read_bdd_from_string(transition_formula_stream.str(), variables);
 
-  return {variables, initial, transition_relation};
+  return {variables, initial_formula, transition_formula};
 }
 
 int main()
 {
   const size_t& n = 3;
   const auto& [variables, initial, transition_relation] = construct_reachability(n);
+  std::cout << "Transition relation node count: " << transition_relation.node_count() << "\n";
   bdd_function variables_q = variables.at("q1");
   for (size_t i = 2; i <= n; i++)
   {

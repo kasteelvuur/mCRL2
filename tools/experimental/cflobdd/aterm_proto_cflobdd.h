@@ -573,17 +573,13 @@ public:
     // Fixing a proposition letter assignment has no effect on no-distinction proto-CFLOBDDs
     if (this->out_degree() == 1)
     {
-      aterm_list values;
-      values.push_front(aterm_int(0));
-      return aterm_pair(*this, values);
+      return aterm_pair(*this, aterm_list {aterm_int(0)});
     }
 
     // Fix the proposition letter assignment if we have reached a constant proto-CFLOBDD V
     if (*this == aterm_proto_cflobdd(g_proto_cflobdd_v))
     {
-      aterm_list values;
-      values.push_front(value);
-      return aterm_pair(aterm_proto_cflobdd(g_proto_cflobdd_i), values);
+      return aterm_pair(aterm_proto_cflobdd(g_proto_cflobdd_i), aterm_list {value});
     }
 
     // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) remains
