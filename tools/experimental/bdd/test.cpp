@@ -117,7 +117,6 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
 
   // Transition relation
   bdd_function transition_formula;
-  std::ostringstream transition_formula_stream;
   for (size_t i = 0; i < state_count - 1; i++)
   {
     const bdd_function& source_state = states[i].substitute(substitution);
