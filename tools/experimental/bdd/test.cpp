@@ -128,6 +128,99 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
   return {variables, initial_formula, transition_formula};
 }
 
+void peg_solitaire_simplified()
+{
+  const size_t& n = 33;
+  const size_t& middle_index = 16;
+  const std::string& main_letter = "p";
+  const std::string& sub_letter = "q";
+
+  // Variables
+  bdd_manager mgr(std::pow(2, 20), 1024, 1);
+  std::unordered_map<std::string, bdd_function> variables;
+  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
+  for (size_t i = 1; i <= n; i++)
+  {
+    const bdd_function& variable_main = mgr.new_var();
+    const bdd_function& variable_sub = mgr.new_var();
+    variables[main_letter + std::to_string(i)] = variable_main;
+    variables[sub_letter + std::to_string(i)] = variable_sub;
+    substitution_list.push_back({variable_main, variable_sub});
+  }
+  const bdd_substitution substitution(substitution_list.begin(), substitution_list.end());
+
+  // Initial states only contains the state where everything except middle is filled
+  bdd_function initial_formula = ~variables[main_letter + std::to_string(middle_index)];
+  for (size_t i = 1; i <= n; i++)
+  {
+    if (i != middle_index)
+    {
+      initial_formula = initial_formula & variables[main_letter + std::to_string(middle_index)];
+    }
+  }
+
+  // Transition relation
+  bdd_function transition_formula;
+  const size_t& state_count = std::pow(2, n);
+  for (size_t i = 0; i < state_count; i++)
+  {
+    // Source state
+    bdd_function source_state;
+    std::vector<bool> occupied(n);
+    for (size_t j = 0; j < n; j++)
+    {
+      bdd_function variable = variables.at(sub_letter + std::to_string(j + 1));
+      occupied[j] = i & (((size_t) 1) << (n - j - 1));
+      if (!occupied[j]) variable = ~variable;
+      source_state = source_state.is_invalid() ? variable : (source_state & variable);
+    }
+
+    // Target states
+    bdd_function target_states;
+    for (size_t j = 0; j < n; j++)
+    {
+      // Can only transition if this spot is occupied
+      if (!occupied[j]) continue;
+
+      // Move left
+      const bool& horiz_mid = 6 <= j && j <= 26;
+      if ((!horiz_mid && j % 3 == 2 || horiz_mid && (j + 1) % 7 >= 2) && !occupied[j - 2] && occupied[j - 1])
+      {
+        bdd_function target_state;
+        for (size_t k = 0; k < n; k++)
+        {
+          bdd_function variable = variables.at(main_letter + std::to_string(k + 1));
+          if (k == j - 1 || !occupied[k] && k != j - 2) variable = ~variable;
+          target_state = target_state.is_invalid() ? variable : (target_state & variable);
+        }
+        target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
+      }
+
+      // Move right
+      if ((!horiz_mid && j % 3 == 0 || horiz_mid && (j + 1) % 7 <= 4) && !occupied[j + 2] && occupied[j + 1])
+      {
+        bdd_function target_state;
+        for (size_t k = 0; k < n; k++)
+        {
+          bdd_function variable = variables.at(main_letter + std::to_string(k + 1));
+          if (k == j + 1 || !occupied[k] && k != j + 2) variable = ~variable;
+          target_state = target_state.is_invalid() ? variable : (target_state & variable);
+        }
+        target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
+      }
+
+      // Move up
+      const bool& vert_mid = j <= 5 || j >= 27 || (j - 1) % 7 <= 2 ;
+      if ((!vert_mid && j >= 20 || vert_mid && j >= 8) && false)
+      {
+
+      }
+
+      // Move down
+    }
+  }
+}
+
 int main()
 {
   const size_t& n = 3;
