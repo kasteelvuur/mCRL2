@@ -95,19 +95,8 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
     for (size_t j = 0; j < n; j++)
     {
       bdd_function variable_formula = variables.at("p" + std::to_string(j + 1));
-      if (!((bool) (i & (((size_t) 1) << (n - j - 1)))))
-      {
-        variable_formula = ~variable_formula;
-      }
-
-      if (state_formula.is_invalid())
-      {
-        state_formula = variable_formula;
-      }
-      else
-      {
-        state_formula = state_formula & variable_formula;
-      }
+      if (!((bool) (i & (((size_t) 1) << (n - j - 1))))) variable_formula = ~variable_formula;
+      state_formula = state_formula.is_invalid() ? variable_formula : (state_formula & variable_formula);
     }
     states.push_back(state_formula);
   }
@@ -126,24 +115,13 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
       const size_t& x = i ^ j;
       if (x && !(x & (x - 1)))
       {
-        if (target_states.is_invalid())
-        {
-          target_states = states[j];
-        }
-        else
-        {
-          target_states = target_states | states[j];
+        target_states = target_states.is_invalid() ? states[j] : (target_states | states[j]);
         }
       }
-    }
-
-    if (transition_formula.is_invalid())
+    if (!target_states.is_invalid())
     {
-      transition_formula = source_state & target_states;
-    }
-    else
-    {
-      transition_formula = transition_formula | (source_state & target_states);
+      const bdd_function& transition = source_state & target_states;
+      transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
     }
   }
 
