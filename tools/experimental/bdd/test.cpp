@@ -116,8 +116,8 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
       if (x && !(x & (x - 1)))
       {
         target_states = target_states.is_invalid() ? states[j] : (target_states | states[j]);
-        }
       }
+    }
     if (!target_states.is_invalid())
     {
       const bdd_function& transition = source_state & target_states;
