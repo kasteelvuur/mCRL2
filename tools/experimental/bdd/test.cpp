@@ -128,6 +128,29 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
   return {variables, initial_formula, transition_formula};
 }
 
+void add_peg_solitaire_target_state(
+  bdd_function& target_states,
+  const std::unordered_map<std::string, bdd_function>& variables,
+  const std::string& variable_prefix,
+  const std::vector<bool>& occupied,
+  const size_t& n,
+  const size_t& j,
+  const size_t& j_1,
+  const size_t& j_2
+) {
+  if (j_1 != j_2 && occupied[j_1] && !occupied[j_2])
+  {
+    bdd_function target_state;
+    for (size_t k = 0; k < n; k++)
+    {
+      bdd_function variable = variables.at(variable_prefix + std::to_string(k + 1));
+      if (k == j || k == j_1 || !occupied[k] && k != j_2) variable = ~variable;
+      target_state = target_state.is_invalid() ? variable : (target_state & variable);
+    }
+    target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
+  }
+}
+
 void peg_solitaire_simplified()
 {
   const size_t& n = 33;
@@ -181,42 +204,96 @@ void peg_solitaire_simplified()
     {
       // Can only transition if this spot is occupied
       if (!occupied[j]) continue;
+      size_t j_1, j_2;
 
       // Move left
       const bool& horiz_mid = 6 <= j && j <= 26;
-      if ((!horiz_mid && j % 3 == 2 || horiz_mid && (j + 1) % 7 >= 2) && !occupied[j - 2] && occupied[j - 1])
+      if (!horiz_mid && j % 3 == 2 || horiz_mid && (j + 1) % 7 >= 2)
       {
-        bdd_function target_state;
-        for (size_t k = 0; k < n; k++)
-        {
-          bdd_function variable = variables.at(main_letter + std::to_string(k + 1));
-          if (k == j - 1 || !occupied[k] && k != j - 2) variable = ~variable;
-          target_state = target_state.is_invalid() ? variable : (target_state & variable);
-        }
-        target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
+        j_1 = j - 1;
+        j_2 = j - 2;
       }
+      else
+      {
+        j_1, j_2 = 0;
+      }
+      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
 
       // Move right
-      if ((!horiz_mid && j % 3 == 0 || horiz_mid && (j + 1) % 7 <= 4) && !occupied[j + 2] && occupied[j + 1])
+      if (!horiz_mid && j % 3 == 0 || horiz_mid && (j + 1) % 7 <= 4)
       {
-        bdd_function target_state;
-        for (size_t k = 0; k < n; k++)
-        {
-          bdd_function variable = variables.at(main_letter + std::to_string(k + 1));
-          if (k == j + 1 || !occupied[k] && k != j + 2) variable = ~variable;
-          target_state = target_state.is_invalid() ? variable : (target_state & variable);
-        }
-        target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
+        j_1 = j + 1;
+        j_2 = j + 2;
       }
+      else
+      {
+        j_1, j_2 = 0;
+      }
+      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
 
       // Move up
-      const bool& vert_mid = j <= 5 || j >= 27 || (j - 1) % 7 <= 2 ;
-      if ((!vert_mid && j >= 20 || vert_mid && j >= 8) && false)
+      if (8 <= j && j <= 10)
       {
-
+        j_1 = j - 5;
+        j_2 = j_1 - 3;
       }
+      else if (15 <= j && j <= 17)
+      {
+        j_1 = j - 7;
+        j_2 = j_1 - 5;
+      }
+      else if (20 <= j && j <= 26)
+      {
+        j_1 = j - 7;
+        j_2 = j_1 - 7;
+      }
+      else if (27 <= j && j <= 29)
+      {
+        j_1 = j - 5;
+        j_2 = j_1 - 7;
+      }
+      else if (30 <= j && j <= 32)
+      {
+        j_1 = j - 3;
+        j_2 = j_1 - 5;
+      }
+      else
+      {
+        j_1, j_2 = 0;
+      }
+      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
 
       // Move down
+      if (0 <= j && j <= 2)
+      {
+        j_1 = j + 3;
+        j_2 = j_1 + 5;
+      }
+      else if (3 <= j && j <= 5)
+      {
+        j_1 = j + 5;
+        j_2 = j_1 + 7;
+      }
+      else if (6 <= j && j <= 12)
+      {
+        j_1 = j + 7;
+        j_2 = j_1 + 7;
+      }
+      else if (15 <= j && j <= 17)
+      {
+        j_1 = j + 7;
+        j_2 = j_1 + 5;
+      }
+      else if (22 <= j && j <= 24)
+      {
+        j_1 = j + 5;
+        j_2 = j_1 + 3;
+      }
+      else
+      {
+        j_1, j_2 = 0;
+      }
+      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
     }
   }
 }
