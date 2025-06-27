@@ -151,8 +151,13 @@ void add_peg_solitaire_target_state(
   }
 }
 
-void peg_solitaire_simplified()
-{
+void peg_solitaire_simplified(
+  std::unordered_map<std::string, oxidd::bdd_function>& variables,
+  bdd_function& variables_sub,
+  bdd_substitution& substitution,
+  bdd_function& initial_formula,
+  bdd_function& transition_formula
+) {
   const size_t& n = 33;
   const size_t& middle_index = 16;
   const std::string& main_letter = "p";
@@ -160,7 +165,6 @@ void peg_solitaire_simplified()
 
   // Variables
   bdd_manager mgr(std::pow(2, 20), 1024, 1);
-  std::unordered_map<std::string, bdd_function> variables;
   std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
   for (size_t i = 1; i <= n; i++)
   {
@@ -168,22 +172,19 @@ void peg_solitaire_simplified()
     const bdd_function& variable_sub = mgr.new_var();
     variables[main_letter + std::to_string(i)] = variable_main;
     variables[sub_letter + std::to_string(i)] = variable_sub;
+    variables_sub = variables_sub.is_invalid() ? variable_sub : (variables_sub & variable_sub);
     substitution_list.push_back({variable_main, variable_sub});
   }
-  const bdd_substitution substitution(substitution_list.begin(), substitution_list.end());
+  substitution = bdd_substitution(substitution_list.begin(), substitution_list.end());
 
   // Initial states only contains the state where everything except middle is filled
-  bdd_function initial_formula = ~variables[main_letter + std::to_string(middle_index)];
+  initial_formula = ~variables[main_letter + std::to_string(middle_index)];
   for (size_t i = 1; i <= n; i++)
   {
-    if (i != middle_index)
-    {
-      initial_formula = initial_formula & variables[main_letter + std::to_string(middle_index)];
-    }
+    if (i != middle_index) initial_formula = initial_formula & variables[main_letter + std::to_string(i)];
   }
 
   // Transition relation
-  bdd_function transition_formula;
   const size_t& state_count = std::pow(2, n);
   for (size_t i = 0; i < state_count; i++)
   {
@@ -295,27 +296,23 @@ void peg_solitaire_simplified()
       }
       add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
     }
+
+    if (!target_states.is_invalid())
+    {
+      const bdd_function& transition = source_state & target_states;
+      transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
+    }
   }
 }
 
 int main()
 {
-  const size_t& n = 3;
-  const auto& [variables, initial, transition_relation] = construct_reachability(n);
+  std::unordered_map<std::string, oxidd::bdd_function> variables;
+  bdd_function variables_q, initial, transition_relation;
+  bdd_substitution substitution;
+  peg_solitaire_simplified(variables, variables_q, substitution, initial, transition_relation);
+
   std::cout << "Transition relation node count: " << transition_relation.node_count() << "\n";
-  bdd_function variables_q = variables.at("q1");
-  for (size_t i = 2; i <= n; i++)
-  {
-    variables_q &= variables.at("q" + std::to_string(i));
-  }
-  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
-  for (const auto& [key, value] : variables)
-  {
-    if (key[0] == 'p')
-    {
-      substitution_list.push_back({value, variables.at("q" + key.substr(1, key.size() - 1))});
-    }
-  }
   bdd_function reach_p = initial;
   bdd_function reach_new = initial;
 
@@ -326,7 +323,7 @@ int main()
 
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
-    const bdd_function& reach_q = reach_p.substitute(bdd_substitution(substitution_list.begin(), substitution_list.end()));
+    const bdd_function& reach_q = reach_p.substitute(substitution);
 
     // Calculate the new reachability iteration
     reach_new = reach_p | (reach_q & transition_relation).exists(variables_q);
@@ -335,18 +332,6 @@ int main()
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::cout << "Step duration: " << duration.count() << " microseconds\n";
   } while (reach_p != reach_new);
-  // std::cout << "Node count: " << reach_new.node_count() << "\n";
-
-  // const auto& [formula, variables] = construct_hadamard(6);
-  // std::cout << formula << "\n";
-  // std::cout << to_string(variables) << "\n";
-  // std::cout << "Start BDD construction\n";
-  // auto start = std::chrono::high_resolution_clock::now();
-  // const bdd_function bdd = read_bdd_from_string(formula, variables);
-  // auto stop = std::chrono::high_resolution_clock::now();
-  // std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  // std::cout << "Time taken by BDD construction: " << duration.count() << " microseconds\n";
-  // std::cout << "Node count: " << bdd.node_count() << "\n"; // 3 * 2^n - 1 for pq
 
   return 0;
 }
