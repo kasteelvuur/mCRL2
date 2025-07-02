@@ -186,8 +186,20 @@ void peg_solitaire_simplified(
 
   // Transition relation
   const size_t& state_count = std::pow(2, n);
+  size_t last_progress = 0;
+  std::cout << "Transition relation progress: 0.0 %\r";
+  std::cout.flush();
   for (size_t i = 0; i < state_count; i++)
   {
+    // Progress
+    const size_t progress = i * 1000 / state_count;
+    if (progress > last_progress)
+    {
+      std::cout << "Transition relation progress: " << (progress / 10.0) << " %\r";
+      std::cout.flush();
+      last_progress = progress;
+    }
+
     // Source state
     bdd_function source_state;
     std::vector<bool> occupied(n);
@@ -303,6 +315,7 @@ void peg_solitaire_simplified(
       transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
     }
   }
+  std::cout << std::endl;
 }
 
 int main()

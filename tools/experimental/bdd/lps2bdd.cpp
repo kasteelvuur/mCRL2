@@ -34,9 +34,39 @@ class lps2bdd_tool: public input_tool
 
     bool run() override
     {
+      // Load the LPS specification
       lps::specification lpsspec;
       lps::load_lps(lpsspec, input_filename());
-      std::cout << lpsspec << "\n";
+      std::cout << lpsspec.process() << "\n";
+
+      // Create all variables for reachability, maintaining a queue for the initial state only
+      oxidd::bdd_manager mgr(std::pow(2, 20), 1024, 1);
+      std::unordered_map<std::string, oxidd::bdd_function> variables;
+      std::queue<oxidd::bdd_function> variable_queue;
+      for (const data::variable& parameter : lpsspec.process().process_parameters())
+      {
+        // TODO: Support non-boolean parameters
+        const std::string& name = pp(parameter.name());
+        variables[name] = mgr.new_var();
+        variables[name + "_sub"] = mgr.new_var();
+        variable_queue.push(variables[name]);
+      }
+
+      // Initial state
+      oxidd::bdd_function initial_state;
+      for (const data::data_expression& expression : lpsspec.initial_process().expressions())
+      {
+        assert(!variable_queue.empty());
+        oxidd::bdd_function variable = variable_queue.front();
+        if (expression[0].function().name() == "false") variable = ~variable;
+        initial_state = initial_state.is_invalid() ? variable : (initial_state & variable);
+        variable_queue.pop();
+      }
+      assert(variable_queue.empty());
+
+      // Transition relation
+      // TODO
+
       return true;
     }
 };

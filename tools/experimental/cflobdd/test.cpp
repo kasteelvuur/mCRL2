@@ -321,7 +321,7 @@ std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
 
 int main()
 {
-  const size_t& n = 3;
+  const size_t& n = 20;
   const size_t& level = std::ceil(std::log2(n));
   const size_t& next_power_two = std::pow(2, level);
   std::vector<size_t> indices_q;
