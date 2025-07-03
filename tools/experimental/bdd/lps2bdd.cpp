@@ -42,14 +42,21 @@ class lps2bdd_tool: public input_tool
       oxidd::bdd_manager mgr(std::pow(2, 20), 1024, 1);
       std::unordered_map<std::string, oxidd::bdd_function> variables;
       std::queue<oxidd::bdd_function> variable_queue;
+      oxidd::bdd_function variables_q;
+      std::vector<std::tuple<oxidd::bdd_function, oxidd::bdd_function>> substitution_list = {};
       for (const data::variable& parameter : lpsspec.process().process_parameters())
       {
         // TODO: Support non-boolean parameters
         const std::string& name = pp(parameter.name());
-        variables[name] = mgr.new_var();
-        variables[name + "_sub"] = mgr.new_var();
-        variable_queue.push(variables[name]);
+        const oxidd::bdd_function& variable_p = mgr.new_var();
+        const oxidd::bdd_function& variable_q = mgr.new_var();
+        variables[name] = variable_p;
+        variables[name + "_sub"] = variable_q;
+        variable_queue.push(variable_p);
+        variables_q = variables_q.is_invalid() ? variable_q : (variables_q & variable_q);
+        substitution_list.push_back({variable_p, variable_q});
       }
+      const oxidd::bdd_substitution& substitution = oxidd::bdd_substitution(substitution_list.begin(), substitution_list.end());
 
       // Initial state
       oxidd::bdd_function initial_state;
@@ -65,9 +72,12 @@ class lps2bdd_tool: public input_tool
 
       // Transition relation
       oxidd::bdd_function transition_relation;
+      const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
       for (const lps::action_summand& action : lpsspec.process().action_summands())
       {
+        std::cout << action << "\n";
         oxidd::bdd_function source_states = oxidd::read_bdd_from_string(pp(action.condition()), variables);
+        std::cout << "Source: " << source_states.node_count() << "\n";
         oxidd::bdd_function target_states;
         for (const data::assignment& assignment : action.assignments())
         {
@@ -75,10 +85,36 @@ class lps2bdd_tool: public input_tool
           oxidd::bdd_function variable = variables.at(pp(assignment.lhs()) + "_sub");
           if (pp(assignment.rhs()) == "false") variable = ~variable;
           target_states = target_states.is_invalid() ? variable : (target_states & variable);
+          std::cout << "Target: " << target_states.node_count() << "\n";
         }
         const oxidd::bdd_function& transition = source_states & target_states;
         transition_relation = transition_relation.is_invalid() ? transition : (transition_relation | transition);
+        std::cout << "Transition: " << transition_relation.node_count() << "\n\n";
       }
+      const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
+      const std::chrono::microseconds& duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      std::cout << "Transition relation construction duration: " << duration.count() << " microseconds\n";
+      std::cout << "Transition relation node count: " << transition_relation.node_count() << "\n";
+
+      // Interatively compute the the reachability function
+      oxidd::bdd_function reach_new = initial_state;
+      oxidd::bdd_function reach_p;
+      do
+      {
+        std::cout << "Node count: " << reach_new.node_count() << "\n";
+        const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
+
+        // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
+        reach_p = reach_new;
+        const oxidd::bdd_function& reach_q = reach_p.substitute(substitution);
+
+        // Compute the new reachability iteration
+        reach_new = reach_p | (reach_q & transition_relation).exists(variables_q);
+
+        const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
+        const std::chrono::microseconds& duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "Step duration: " << duration.count() << " microseconds\n";
+      } while (reach_p != reach_new);
 
       return true;
     }
