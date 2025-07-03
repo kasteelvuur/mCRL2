@@ -176,7 +176,7 @@ void peg_solitaire_simplified(
   initial_formula = ~variables[main_letter + std::to_string(middle_index)];
   for (size_t i = 0; i < n; i++)
   {
-    if (i != middle_index) initial_formula = initial_formula & variables[main_letter + std::to_string(i)];
+    if (i != middle_index) initial_formula &= variables[main_letter + std::to_string(i)];
   }
 
   // Transition relation - common transitions
@@ -227,6 +227,7 @@ void peg_solitaire_simplified(
     if (i != middle_index) ready_transition &= ~variables[sub_letter + std::to_string(i)];
     ready_transition &= ~variables[main_letter + std::to_string(i)];
   }
+  transition_formula |= ready_transition;
 }
 
 int main()
