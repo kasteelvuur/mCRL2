@@ -128,27 +128,22 @@ std::tuple<std::unordered_map<std::string, bdd_function>, bdd_function, bdd_func
   return {variables, initial_formula, transition_formula};
 }
 
-void add_peg_solitaire_target_state(
-  bdd_function& target_states,
+void add_peg_solitaire_transition(
+  bdd_function& transition_formula,
   const std::unordered_map<std::string, bdd_function>& variables,
-  const std::string& variable_prefix,
-  const std::vector<bool>& occupied,
-  const size_t& n,
-  const size_t& j,
-  const size_t& j_1,
-  const size_t& j_2
+  const std::string& source_prefix,
+  const std::string& target_prefix,
+  const size_t& i,
+  const size_t& i_1,
+  const size_t& i_2
 ) {
-  if (j_1 != j_2 && occupied[j_1] && !occupied[j_2])
-  {
-    bdd_function target_state;
-    for (size_t k = 0; k < n; k++)
-    {
-      bdd_function variable = variables.at(variable_prefix + std::to_string(k + 1));
-      if (k == j || k == j_1 || !occupied[k] && k != j_2) variable = ~variable;
-      target_state = target_state.is_invalid() ? variable : (target_state & variable);
-    }
-    target_states = target_states.is_invalid() ? target_state : (target_states | target_state);
-  }
+  const bdd_function& transition = variables.at(source_prefix + std::to_string(i))
+    & variables.at(source_prefix + std::to_string(i_1))
+    & ~variables.at(source_prefix + std::to_string(i_2))
+    & ~variables.at(target_prefix + std::to_string(i))
+    & ~variables.at(target_prefix + std::to_string(i_1))
+    & variables.at(target_prefix + std::to_string(i_2));
+    transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
 }
 
 void peg_solitaire_simplified(
@@ -166,7 +161,7 @@ void peg_solitaire_simplified(
   // Variables
   bdd_manager mgr(std::pow(2, 20), 1024, 1);
   std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
-  for (size_t i = 1; i <= n; i++)
+  for (size_t i = 0; i < n; i++)
   {
     const bdd_function& variable_main = mgr.new_var();
     const bdd_function& variable_sub = mgr.new_var();
@@ -179,143 +174,59 @@ void peg_solitaire_simplified(
 
   // Initial states only contains the state where everything except middle is filled
   initial_formula = ~variables[main_letter + std::to_string(middle_index)];
-  for (size_t i = 1; i <= n; i++)
+  for (size_t i = 0; i < n; i++)
   {
     if (i != middle_index) initial_formula = initial_formula & variables[main_letter + std::to_string(i)];
   }
 
-  // Transition relation
-  const size_t& state_count = std::pow(2, n);
-  size_t last_progress = 0;
-  std::cout << "Transition relation progress: 0.0 %\r";
-  std::cout.flush();
-  for (size_t i = 0; i < state_count; i++)
+  // Transition relation - common transitions
+  for (size_t i = 0; i < n; i++)
   {
-    // Progress
-    const size_t progress = i * 1000 / state_count;
-    if (progress > last_progress)
+    // Predefine booleans for the different sections
+    const bool& top = i <= 5;
+    const bool& bot = i >= 27;
+    const bool& mid_horiz = 6 <= i && i <= 26;
+    const size_t& mid_col_idx = (i + 1) % 7;
+    const bool& mid = mid_horiz && 2 <= mid_col_idx && mid_col_idx <= 4;
+    const bool& left = mid_horiz && mid_col_idx <= 1;
+    const bool& right = mid_horiz && mid_col_idx >= 5;
+
+    // Move right
+    if (mid || left || ((top || bot) && i % 3 == 0))
     {
-      std::cout << "Transition relation progress: " << (progress / 10.0) << " %\r";
-      std::cout.flush();
-      last_progress = progress;
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i + 1, i + 2);
     }
 
-    // Source state
-    bdd_function source_state;
-    std::vector<bool> occupied(n);
-    for (size_t j = 0; j < n; j++)
+    // Move left
+    if (mid || right || ((top || bot) && i % 3 == 2))
     {
-      bdd_function variable = variables.at(sub_letter + std::to_string(j + 1));
-      occupied[j] = i & (((size_t) 1) << (n - j - 1));
-      if (!occupied[j]) variable = ~variable;
-      source_state = source_state.is_invalid() ? variable : (source_state & variable);
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i - 1, i - 2);
     }
 
-    // Target states
-    bdd_function target_states;
-    for (size_t j = 0; j < n; j++)
+    // Move up
+    if (mid || bot || ((left || right) && i >= 20))
     {
-      // Can only transition if this spot is occupied
-      if (!occupied[j]) continue;
-      size_t j_1, j_2;
-
-      // Move left
-      const bool& horiz_mid = 6 <= j && j <= 26;
-      if (!horiz_mid && j % 3 == 2 || horiz_mid && (j + 1) % 7 >= 2)
-      {
-        j_1 = j - 1;
-        j_2 = j - 2;
-      }
-      else
-      {
-        j_1, j_2 = 0;
-      }
-      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
-
-      // Move right
-      if (!horiz_mid && j % 3 == 0 || horiz_mid && (j + 1) % 7 <= 4)
-      {
-        j_1 = j + 1;
-        j_2 = j + 2;
-      }
-      else
-      {
-        j_1, j_2 = 0;
-      }
-      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
-
-      // Move up
-      if (8 <= j && j <= 10)
-      {
-        j_1 = j - 5;
-        j_2 = j_1 - 3;
-      }
-      else if (15 <= j && j <= 17)
-      {
-        j_1 = j - 7;
-        j_2 = j_1 - 5;
-      }
-      else if (20 <= j && j <= 26)
-      {
-        j_1 = j - 7;
-        j_2 = j_1 - 7;
-      }
-      else if (27 <= j && j <= 29)
-      {
-        j_1 = j - 5;
-        j_2 = j_1 - 7;
-      }
-      else if (30 <= j && j <= 32)
-      {
-        j_1 = j - 3;
-        j_2 = j_1 - 5;
-      }
-      else
-      {
-        j_1, j_2 = 0;
-      }
-      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
-
-      // Move down
-      if (0 <= j && j <= 2)
-      {
-        j_1 = j + 3;
-        j_2 = j_1 + 5;
-      }
-      else if (3 <= j && j <= 5)
-      {
-        j_1 = j + 5;
-        j_2 = j_1 + 7;
-      }
-      else if (6 <= j && j <= 12)
-      {
-        j_1 = j + 7;
-        j_2 = j_1 + 7;
-      }
-      else if (15 <= j && j <= 17)
-      {
-        j_1 = j + 7;
-        j_2 = j_1 + 5;
-      }
-      else if (22 <= j && j <= 24)
-      {
-        j_1 = j + 5;
-        j_2 = j_1 + 3;
-      }
-      else
-      {
-        j_1, j_2 = 0;
-      }
-      add_peg_solitaire_target_state(target_states, variables, main_letter, occupied, n, j, j_1, j_2);
+      const size_t& i_1 = i >= 30 ? i - 3 : i <= 10 || i >= 27 ? i - 5 : i - 7;
+      const size_t& i_2 = i <= 10 || i >= 30 ? i - 8 : i <= 17 || i >= 27 ? i - 12 : i - 14;
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i_1, i_2);
     }
 
-    if (!target_states.is_invalid())
+    // Move down
+    if (mid || top || ((left || right) && i <= 12))
     {
-      const bdd_function& transition = source_state & target_states;
-      transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
+      const size_t& i_1 = i <= 2 ? i + 3 : i <= 5 || i >= 22 ? i + 5 : i + 7;
+      const size_t& i_2 = i <= 2 || i >= 22 ? i + 8 : i <= 5 || i >= 15 ? i + 12 : i + 14;
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i_1, i_2);
     }
   }
-  std::cout << std::endl;
+
+  // Transition relation - special ready transition (end)
+  bdd_function ready_transition = variables[sub_letter + std::to_string(middle_index)];
+  for (size_t i = 0; i < n; i++)
+  {
+    if (i != middle_index) ready_transition &= ~variables[sub_letter + std::to_string(i)];
+    ready_transition &= ~variables[main_letter + std::to_string(i)];
+  }
 }
 
 int main()
