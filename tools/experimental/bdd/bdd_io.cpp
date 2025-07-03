@@ -196,17 +196,17 @@ bdd_function text_bdd_istream::parse_primary(int& character)
     const bdd_function& c = parse(character);
     if (character != ')')
     {
-      throw std::runtime_error("Missing closing paranthesis ')' while parsing a CFLOBDD term");
+      throw std::runtime_error("Missing closing paranthesis ')' while parsing a BDD term");
     }
     character = next_char();
     return c;
   }
 
-  // Parse a variable starting with an alphabetic character and containing only alphanumeric characters
+  // Parse a variable starting with an alphabetic character and containing only alphanumeric characters and dashes/underscores
   if (std::isalpha(character)) {
     // Get the name of the proposition variable
     std::string name;
-    while (std::isalnum(character)) {
+    while (std::isalnum(character) || character == '-' || character == '_') {
         name.push_back(character);
         character = next_char(false);
     }
@@ -221,7 +221,7 @@ bdd_function text_bdd_istream::parse_primary(int& character)
     std::unordered_map<std::string, bdd_function>::const_iterator variable = m_variables.find(name);
     if (variable == m_variables.end())
     {
-      throw std::runtime_error("Unknown variable '" + name + "' while parsing a CFLOBDD term");
+      throw std::runtime_error("Unknown variable '" + name + "' while parsing a BDD term");
     }
     return variable->second;
   }

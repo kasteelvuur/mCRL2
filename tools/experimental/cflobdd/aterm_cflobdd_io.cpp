@@ -223,11 +223,11 @@ aterm_cflobdd text_aterm_cflobdd_istream::parse_primary(int& character)
     return c;
   }
 
-  // Parse a variable starting with an alphabetic character and containing only alphanumeric characters
+  // Parse a variable starting with an alphabetic character and containing only alphanumeric characters and dashes/underscores
   if (std::isalpha(character)) {
     // Get the name of the proposition variable
     std::string name;
-    while (std::isalnum(character)) {
+    while (std::isalnum(character) || character == '-' || character == '_') {
         name.push_back(character);
         character = next_char(false);
     }
