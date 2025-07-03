@@ -39,7 +39,7 @@ class lps2bdd_tool: public input_tool
       lps::load_lps(lpsspec, input_filename());
 
       // Create all variables for reachability, maintaining a queue for the initial state only
-      oxidd::bdd_manager mgr(std::pow(2, 20), 1024, 1);
+      oxidd::bdd_manager mgr(std::pow(2, 26), std::pow(2, 26), 6);
       std::unordered_map<std::string, oxidd::bdd_function> variables;
       std::queue<oxidd::bdd_function> variable_queue;
       oxidd::bdd_function variables_q;
@@ -76,13 +76,13 @@ class lps2bdd_tool: public input_tool
       for (const lps::action_summand& action : lpsspec.process().action_summands())
       {
         std::cout << action << "\n";
-        oxidd::bdd_function source_states = oxidd::read_bdd_from_string(pp(action.condition()), variables);
+        const oxidd::bdd_function& source_states = oxidd::read_bdd_from_string(pp(action.condition()), variables).substitute(substitution);
         std::cout << "Source: " << source_states.node_count() << "\n";
         oxidd::bdd_function target_states;
         for (const data::assignment& assignment : action.assignments())
         {
           // TODO: Support non-boolean parameters
-          oxidd::bdd_function variable = variables.at(pp(assignment.lhs()) + "_sub");
+          oxidd::bdd_function variable = variables.at(pp(assignment.lhs()));
           if (pp(assignment.rhs()) == "false") variable = ~variable;
           target_states = target_states.is_invalid() ? variable : (target_states & variable);
           std::cout << "Target: " << target_states.node_count() << "\n";
@@ -115,6 +115,7 @@ class lps2bdd_tool: public input_tool
         const std::chrono::microseconds& duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         std::cout << "Step duration: " << duration.count() << " microseconds\n";
       } while (reach_p != reach_new);
+      std::cout << "Final node count: " << reach_new.node_count() << "\n";
 
       return true;
     }
