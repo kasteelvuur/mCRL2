@@ -159,7 +159,7 @@ void peg_solitaire_simplified(
   const std::string& sub_letter = "q";
 
   // Variables
-  bdd_manager mgr(std::pow(2, 20), 1024, 1);
+  bdd_manager mgr(std::pow(2, 22), std::pow(2, 22), 6);
   std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
   for (size_t i = 0; i < n; i++)
   {
