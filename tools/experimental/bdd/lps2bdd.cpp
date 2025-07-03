@@ -39,7 +39,7 @@ class lps2bdd_tool: public input_tool
       lps::load_lps(lpsspec, input_filename());
 
       // Create all variables for reachability, maintaining a queue for the initial state only
-      oxidd::bdd_manager mgr(std::pow(2, 26), std::pow(2, 27), 6);
+      oxidd::bdd_manager mgr(std::pow(2, 27), std::pow(2, 28), 6);
       std::unordered_set<std::string> variable_names;
       std::unordered_map<std::string, oxidd::bdd_function> variables;
       std::queue<oxidd::bdd_function> variable_queue;
@@ -78,7 +78,6 @@ class lps2bdd_tool: public input_tool
       const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
       for (const lps::action_summand& action : lpsspec.process().action_summands())
       {
-        std::cout << action << "\n";
         oxidd::bdd_function transition = oxidd::read_bdd_from_string(pp(action.condition()), variables).substitute(substitution);
         std::unordered_set<std::string> unchanged_variable_names = variable_names;
         for (const data::assignment& assignment : action.assignments())
@@ -95,7 +94,6 @@ class lps2bdd_tool: public input_tool
           transition &= variables.at(name).equiv(variables.at(name + "_sub"));
         }
         transition_relation = transition_relation.is_invalid() ? transition : (transition_relation | transition);
-        std::cout << "Transition: " << transition_relation.node_count() << "\n\n";
       }
       const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
       const std::chrono::microseconds& duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);

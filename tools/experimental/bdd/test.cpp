@@ -133,17 +133,25 @@ void add_peg_solitaire_transition(
   const std::unordered_map<std::string, bdd_function>& variables,
   const std::string& source_prefix,
   const std::string& target_prefix,
+  const size_t& n,
   const size_t& i,
   const size_t& i_1,
   const size_t& i_2
 ) {
-  const bdd_function& transition = variables.at(source_prefix + std::to_string(i))
+  bdd_function transition = variables.at(source_prefix + std::to_string(i))
     & variables.at(source_prefix + std::to_string(i_1))
     & ~variables.at(source_prefix + std::to_string(i_2))
     & ~variables.at(target_prefix + std::to_string(i))
     & ~variables.at(target_prefix + std::to_string(i_1))
     & variables.at(target_prefix + std::to_string(i_2));
-    transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
+  for (size_t j = 0; j < n; j++)
+  {
+    if (j != i && j != i_1 && j != i_2)
+    {
+      transition &= variables.at(source_prefix + std::to_string(j)).equiv(variables.at(target_prefix + std::to_string(j)));
+    }
+  }
+  transition_formula = transition_formula.is_invalid() ? transition : (transition_formula | transition);
 }
 
 void peg_solitaire_simplified(
@@ -159,7 +167,7 @@ void peg_solitaire_simplified(
   const std::string& sub_letter = "q";
 
   // Variables
-  bdd_manager mgr(std::pow(2, 22), std::pow(2, 22), 6);
+  bdd_manager mgr(std::pow(2, 27), std::pow(2, 28), 6);
   std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
   for (size_t i = 0; i < n; i++)
   {
@@ -194,13 +202,13 @@ void peg_solitaire_simplified(
     // Move right
     if (mid || left || ((top || bot) && i % 3 == 0))
     {
-      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i + 1, i + 2);
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, n, i, i + 1, i + 2);
     }
 
     // Move left
     if (mid || right || ((top || bot) && i % 3 == 2))
     {
-      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i - 1, i - 2);
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, n, i, i - 1, i - 2);
     }
 
     // Move up
@@ -208,7 +216,7 @@ void peg_solitaire_simplified(
     {
       const size_t& i_1 = i >= 30 ? i - 3 : i <= 10 || i >= 27 ? i - 5 : i - 7;
       const size_t& i_2 = i <= 10 || i >= 30 ? i - 8 : i <= 17 || i >= 27 ? i - 12 : i - 14;
-      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i_1, i_2);
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, n, i, i_1, i_2);
     }
 
     // Move down
@@ -216,7 +224,7 @@ void peg_solitaire_simplified(
     {
       const size_t& i_1 = i <= 2 ? i + 3 : i <= 5 || i >= 22 ? i + 5 : i + 7;
       const size_t& i_2 = i <= 2 || i >= 22 ? i + 8 : i <= 5 || i >= 15 ? i + 12 : i + 14;
-      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, i, i_1, i_2);
+      add_peg_solitaire_transition(transition_formula, variables, sub_letter, main_letter, n, i, i_1, i_2);
     }
   }
 
