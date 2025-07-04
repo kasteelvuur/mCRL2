@@ -45,6 +45,16 @@ public:
     assert(is_cflobdd());
   }
 
+  /// \brief Construct a CFLOBDD encoding a boolean value (true or false) 
+  /// \param level The level of the CFLOBDD
+  /// \param value The boolean value
+  aterm_cflobdd(const size_t& level, const bool& value)
+    : aterm(g_cflobdd, aterm_proto_cflobdd(level), aterm_list {aterm_int(value)})
+  {
+    assert(is_cflobdd());
+    assert(is_reduced());
+  }
+
   /// \brief Construct a CFLOBDD encoding only one proposition variable
   /// \param level The level of the CFLOBDD
   /// \param variable_index The index of the proposition variable
@@ -304,6 +314,35 @@ public:
     const aterm_cflobdd& fixed_cflobdd = aterm_cflobdd(fixed_c, fixed_f);
     assert(!this->is_reduced() || fixed_cflobdd.is_reduced());
     return fixed_cflobdd;
+  }
+
+  /// \brief Compute the substitution of this CFLOBDD according to the formula:
+  ///   this[p := q] = \exists p : Bool . (p <=> q) && this
+  /// \param indices The indices of the variables being replaced.
+  /// \param substitution A CFLOBDD that matches the replaced and replacing variables.
+  /// \return  The substituted CFLOBDD
+  aterm_cflobdd substitute(const std::vector<size_t>& indices, const aterm_cflobdd& substitution)
+  {
+    return (substitution && *this).exists(indices);
+  }
+
+  /// \brief Compute the substitution of this CFLOBDD according to the formula:
+  ///   this[p := q] = \exists p : Bool . (p <=> q) && this
+  /// \param substitution_indices The indices of the variables being replaced paired with their replacements.
+  /// \return  The substituted CFLOBDD
+  aterm_cflobdd substitute(const std::vector<std::pair<size_t, size_t>>& substitution_indices)
+  {
+    const size_t& level = down_cast<aterm_proto_cflobdd>((*this)[0]).level();
+    aterm_cflobdd substitution = aterm_cflobdd(level, true);
+    std::vector<size_t> indices;
+    for (const std::pair<size_t, size_t>& pair : substitution_indices)
+    {
+      indices.push_back(pair.first);
+      const aterm_cflobdd& first = aterm_cflobdd(level, pair.first);
+      const aterm_cflobdd& second = aterm_cflobdd(level, pair.second);
+      substitution = substitution && first.iff(second);
+    }
+    return substitute(indices, substitution);
   }
 };
 
