@@ -17,48 +17,6 @@ namespace atermpp
 
 // Public functions
 
-aterm_cflobdd construct_cflobdd(const size_t& level, const size_t& variable_index)
-{
-  assert(variable_index < std::pow(2, level));
-  const aterm_cflobdd& c = aterm_cflobdd(
-    construct_proto_cflobdd(level, variable_index),
-    read_list_from_string("[0,1]")
-  );
-  assert(c.is_reduced());
-  return c;
-}
-
-aterm_proto_cflobdd construct_proto_cflobdd(const size_t& level, const size_t& variable_index)
-{
-  assert(variable_index < std::pow(2, level));
-
-  // Return the constant V for level 0
-  if (!level) return aterm_proto_cflobdd_v();
-
-  // Determine the location of the proposition variable
-  const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd::no_distinction(level - 1);
-  const size_t& mid_index = std::pow(2, level - 1);
-  if (variable_index < mid_index)
-  {
-    // The proposition variable is in the left split, so recurse there
-    const aterm_proto_cflobdd& c = construct_proto_cflobdd(level - 1, variable_index);
-    aterm_list cvs;
-    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[1]")));
-    cvs.push_front(aterm_pair(no_distinction, read_list_from_string("[0]")));
-    return aterm_proto_cflobdd(c, cvs);
-  }
-  else
-  {
-    // The proposition variable is in the right split, so recurse there
-    aterm_list cvs;
-    cvs.push_front(aterm_pair(
-      construct_proto_cflobdd(level - 1, variable_index - mid_index),
-      read_list_from_string("[0,1]")
-    ));
-    return aterm_proto_cflobdd(no_distinction, cvs);
-  }
-}
-
 aterm_cflobdd read_cflobdd_from_string(const std::string& s)
 {
   std::vector<std::string> variables;
@@ -247,7 +205,7 @@ aterm_cflobdd text_aterm_cflobdd_istream::parse_primary(int& character)
     const size_t& index = location - m_variables.begin();
 
     // Construct a CFLOBDD encoding only the proposition variable
-    return construct_cflobdd(m_level, index);
+    return aterm_cflobdd(m_level, index);
   }
 
   throw unexpected_character_error(character);

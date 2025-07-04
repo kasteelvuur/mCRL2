@@ -96,7 +96,7 @@ void test_conjunction_of_biconditions(const size_t& n = 2)
   std::vector<aterm_cflobdd> proposition_letters;
   for (size_t i = 0; i < 2 * n; i++)
   {
-    const aterm_cflobdd& proposition_letter = construct_cflobdd(level, i);
+    const aterm_cflobdd& proposition_letter = aterm_cflobdd(level, i);
     proposition_letters.push_back(proposition_letter);
     // test_cflobdd(proposition_letter);
   }

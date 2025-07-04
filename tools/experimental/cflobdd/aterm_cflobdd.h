@@ -45,6 +45,17 @@ public:
     assert(is_cflobdd());
   }
 
+  /// \brief Construct a CFLOBDD encoding only one proposition variable
+  /// \param level The level of the CFLOBDD
+  /// \param variable_index The index of the proposition variable
+  aterm_cflobdd(const size_t& level, const size_t& variable_index)
+    : aterm(g_cflobdd, aterm_proto_cflobdd(level, variable_index), aterm_list {aterm_int(0), aterm_int(1)})
+  {
+    assert(variable_index < std::pow(2, level));
+    assert(is_cflobdd());
+    assert(is_reduced());
+  }
+
   /// \brief Check if this term is a CFLOBDD.
   /// \return Whether this term is a CFLOBDD
   bool is_cflobdd() const noexcept

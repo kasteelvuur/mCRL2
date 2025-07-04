@@ -84,6 +84,63 @@ public:
     assert(is_proto_cflobdd());
   }
 
+  /// \brief Construct a no-distinction proto-CFLOBDD of a specific level.
+  /// \param level The level of the no-distinction proto-CFLOBDD
+  aterm_proto_cflobdd(const size_t& level)
+  {
+    if (!level)
+    {
+      // Base case - constant proto-CFLOBDD I
+      *this = aterm_proto_cflobdd(g_proto_cflobdd_i);
+    } 
+    else
+    {
+      // Inductively build on lower level no-distinction proto-CFLOBDDs
+      const aterm_proto_cflobdd& lower(level - 1);
+      const aterm_list& values = {aterm_int(0)};
+      const aterm_list& cvs = {aterm_pair(lower, values)};
+      *this = aterm_proto_cflobdd(lower, cvs);
+    }
+  }
+
+  /// \brief Construct a proto-CFLOBDD encoding only one proposition variable
+  /// \param level The level of the proto-CFLOBDD
+  /// \param variable_index The index of the proposition variable
+  aterm_proto_cflobdd(const size_t& level, const size_t& variable_index)
+  {
+    assert(variable_index < std::pow(2, level));
+
+    // Set the constant V for level 0
+    if (!level)
+    {
+      *this = aterm_proto_cflobdd(g_proto_cflobdd_v);
+      return;
+    }
+
+    // Determine the location of the proposition variable
+    const aterm_proto_cflobdd& no_distinction(level - 1);
+    const size_t& mid_index = std::pow(2, level - 1);
+    if (variable_index < mid_index)
+    {
+      // The proposition variable is in the left split, so recurse there
+      const aterm_proto_cflobdd& c = aterm_proto_cflobdd(level - 1, variable_index);
+      const aterm_list& cvs = {
+        aterm_pair(no_distinction, aterm_list {aterm_int(0)}),
+        aterm_pair(no_distinction, aterm_list {aterm_int(1)})
+      };
+      *this = aterm_proto_cflobdd(c, cvs);
+    }
+    else
+    {
+      // The proposition variable is in the right split, so recurse there
+      const aterm_proto_cflobdd& c = aterm_proto_cflobdd(level - 1, variable_index - mid_index);
+      const aterm_list& cvs = {
+        aterm_pair(c, aterm_list {aterm_int(0), aterm_int(1)})
+      };
+      *this = aterm_proto_cflobdd(no_distinction, cvs);
+    }
+  }
+
   /// \brief Proto-CFLOBDD inductive case (L, [L_0, ..., L_{n-1}], m).
   /// \param c The proto-CFLOBDD L
   /// \param cvs The list of proto-CFLOBDDs [L_0, ..., L_{n-1}] and mapping m merged into a list of pairs.
@@ -500,7 +557,7 @@ public:
     }
 
     // Reduce to a no-distinction proto-CFLOBDD if there is only one unique value
-    if (as_set(values).size() == 1) return no_distinction(this->level());
+    if (as_set(values).size() == 1) return aterm_proto_cflobdd(this->level());
 
     // Recursively propogate the new return mapping values to all included proto-CFLOBDDs 
     const std::vector<aterm> values_vec = as_vector(values);
@@ -545,21 +602,6 @@ public:
     cache[aterm_pair(*this, values)] = new_proto_cflobdd;
     assert(new_proto_cflobdd.is_reduced());
     return new_proto_cflobdd;
-  }
-
-  /// \brief Construct a no-distinction proto-CFLOBDD of a specific level.
-  /// \param level The level of the no-distinction proto-CFLOBDD
-  /// \return A no-distinction proto-CFLOBDD of the provided level
-  static aterm_proto_cflobdd no_distinction(const size_t& level) noexcept
-  {
-    // Base case I
-    if (level == 0) return aterm_proto_cflobdd(g_proto_cflobdd_i);
-
-    // Inductively build on lower level no-distinction proto-CFLOBDDs
-    const aterm_proto_cflobdd& lower = no_distinction(level - 1);
-    const aterm_list& values = {aterm_int(0)};
-    const aterm_list& cvs = {aterm_pair(lower, values)};
-    return aterm_proto_cflobdd(lower, cvs);
   }
 
   /// \brief Fix a proposition letter assignment.
