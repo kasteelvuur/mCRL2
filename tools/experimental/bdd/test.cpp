@@ -155,20 +155,20 @@ void add_peg_solitaire_transition(
 }
 
 void peg_solitaire_simplified(
-  std::unordered_map<std::string, oxidd::bdd_function>& variables,
   bdd_function& variables_sub,
   bdd_substitution& substitution,
   bdd_function& initial_formula,
   bdd_function& transition_formula
 ) {
   const size_t& n = 33;
-  const size_t& middle_index = 16;
+  const size_t& middle_index = n / 2;
   const std::string& main_letter = "p";
   const std::string& sub_letter = "q";
 
   // Variables
   bdd_manager mgr(std::pow(2, 27), std::pow(2, 28), 6);
-  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list = {};
+  std::unordered_map<std::string, oxidd::bdd_function> variables;
+  std::vector<std::tuple<bdd_function, bdd_function>> substitution_list;
   for (size_t i = 0; i < n; i++)
   {
     const bdd_function& variable_main = mgr.new_var();
@@ -240,19 +240,15 @@ void peg_solitaire_simplified(
 
 int main()
 {
-  std::unordered_map<std::string, oxidd::bdd_function> variables;
-  bdd_function variables_q, initial, transition_relation;
+  bdd_function variables_q, reach_p, reach_new, transition_relation;
   bdd_substitution substitution;
-  peg_solitaire_simplified(variables, variables_q, substitution, initial, transition_relation);
-
+  peg_solitaire_simplified(variables_q, substitution, reach_new, transition_relation);
   std::cout << "Transition relation node count: " << transition_relation.node_count() << "\n";
-  bdd_function reach_p = initial;
-  bdd_function reach_new = initial;
 
   do
   {
     std::cout << "Node count: " << reach_new.node_count() << "\n";
-    auto start = std::chrono::high_resolution_clock::now();
+    const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
 
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
@@ -261,7 +257,7 @@ int main()
     // Calculate the new reachability iteration
     reach_new = reach_p | (reach_q & transition_relation).exists(variables_q);
 
-    auto stop = std::chrono::high_resolution_clock::now();
+    const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::cout << "Step duration: " << duration.count() << " microseconds\n";
   } while (reach_p != reach_new);

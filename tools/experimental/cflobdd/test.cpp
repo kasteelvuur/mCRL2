@@ -319,59 +319,140 @@ std::pair<aterm_cflobdd, aterm_cflobdd> construct_reachability(const size_t& n)
   return {initial, transition_relation};
 }
 
+void add_peg_solitaire_transition(
+  aterm_cflobdd& transition_formula,
+  const std::vector<aterm_cflobdd>& variables,
+  const size_t& n,
+  const size_t& i,
+  const size_t& i_1,
+  const size_t& i_2
+) {
+  aterm_cflobdd transition = variables[2 * i + 1]
+    && variables[2 * i_1 + 1]
+    && !variables[2 * i_2 + 1]
+    && !variables[2 * i]
+    && !variables[2 * i_1]
+    && variables[2 * i_2];
+  for (size_t j = 0; j < n; j++)
+  {
+    if (j != i && j != i_1 && j != i_2)
+    {
+      transition = transition && variables[2 * j].iff(variables[2 * j + 1]);
+    }
+  }
+  transition_formula = transition_formula || transition;
+}
+
+std::tuple<
+  std::vector<size_t>,
+  std::pair<std::vector<size_t>, aterm_cflobdd>,
+  aterm_cflobdd,
+  aterm_cflobdd
+> peg_solitaire_simplified() {
+  const size_t& n = 33;
+  const size_t& middle_index = n / 2;
+  const size_t& level = std::ceil(std::log2(n)) + 1;
+
+  // Variables
+  std::vector<size_t> variables_sub_indices;
+  std::vector<aterm_cflobdd> variables;
+  std::pair<std::vector<size_t>, aterm_cflobdd> substitution = {{}, aterm_cflobdd(level, true)};
+  for (size_t i = 0; i < n; i++)
+  {
+    const aterm_cflobdd& variable_main = aterm_cflobdd(level, 2 * i);
+    const aterm_cflobdd& variable_sub = aterm_cflobdd(level, 2 * i + 1);
+    variables.push_back(variable_main);
+    variables.push_back(variable_sub);
+    variables_sub_indices.push_back(2 * i + 1);
+    substitution.first.push_back(2 * i);
+    substitution.second = substitution.second && variable_main.iff(variable_sub);
+  }
+
+  // Initial states only contains the state where everything except middle is filled
+  aterm_cflobdd initial_formula = !variables[2 * middle_index];
+  for (size_t i = 0; i < n; i++)
+  {
+    if (i != middle_index) initial_formula = initial_formula && variables[2 * i];
+  }
+
+  // Transition relation - common transitions
+  aterm_cflobdd transition_formula = aterm_cflobdd(level, false);
+  for (size_t i = 0; i < n; i++)
+  {
+    // Predefine booleans for the different sections
+    const bool& top = i <= 5;
+    const bool& bot = i >= 27;
+    const bool& mid_horiz = 6 <= i && i <= 26;
+    const size_t& mid_col_idx = (i + 1) % 7;
+    const bool& mid = mid_horiz && 2 <= mid_col_idx && mid_col_idx <= 4;
+    const bool& left = mid_horiz && mid_col_idx <= 1;
+    const bool& right = mid_horiz && mid_col_idx >= 5;
+
+    // Move right
+    if (mid || left || ((top || bot) && i % 3 == 0))
+    {
+      add_peg_solitaire_transition(transition_formula, variables, n, i, i + 1, i + 2);
+    }
+
+    // Move left
+    if (mid || right || ((top || bot) && i % 3 == 2))
+    {
+      add_peg_solitaire_transition(transition_formula, variables, n, i, i - 1, i - 2);
+    }
+
+    // Move up
+    if (mid || bot || ((left || right) && i >= 20))
+    {
+      const size_t& i_1 = i >= 30 ? i - 3 : i <= 10 || i >= 27 ? i - 5 : i - 7;
+      const size_t& i_2 = i <= 10 || i >= 30 ? i - 8 : i <= 17 || i >= 27 ? i - 12 : i - 14;
+      add_peg_solitaire_transition(transition_formula, variables, n, i, i_1, i_2);
+    }
+
+    // Move down
+    if (mid || top || ((left || right) && i <= 12))
+    {
+      const size_t& i_1 = i <= 2 ? i + 3 : i <= 5 || i >= 22 ? i + 5 : i + 7;
+      const size_t& i_2 = i <= 2 || i >= 22 ? i + 8 : i <= 5 || i >= 15 ? i + 12 : i + 14;
+      add_peg_solitaire_transition(transition_formula, variables, n, i, i_1, i_2);
+    }
+  }
+
+  // Transition relation - special ready transition (end)
+  aterm_cflobdd ready_transition = variables[2 * middle_index + 1];
+  for (size_t i = 0; i < n; i++)
+  {
+    if (i != middle_index) ready_transition = ready_transition && !variables[2 * i + 1];
+    ready_transition = ready_transition && !variables[2 * i];
+  }
+  transition_formula = transition_formula || ready_transition;
+
+  return {variables_sub_indices, substitution, initial_formula, transition_formula};
+}
+
 int main()
 {
-  const size_t& n = 20;
-  const size_t& level = std::ceil(std::log2(n));
-  const size_t& next_power_two = std::pow(2, level);
-  std::vector<size_t> indices_q;
-  for (size_t i = next_power_two; i < next_power_two + n; i++)
-  {
-    indices_q.push_back(i);
-  }
-  const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd::no_distinction(level);
-
-  const auto& [initial, transition_relation] = construct_reachability(n);
-  aterm_cflobdd reach_p = initial;
-  aterm_cflobdd reach_new = initial;
+  aterm_cflobdd reach_p = aterm_cflobdd(0, false);
+  auto [variables_q, substitution, reach_new, transition_relation] = peg_solitaire_simplified();
+  const auto& [vertex_count, edge_count] = transition_relation.count_vertices_and_edges();
+  std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
 
   do
   {
     const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
     std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
-    auto start = std::chrono::high_resolution_clock::now();
+    const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
 
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
-    const aterm_cflobdd& reach_q = aterm_cflobdd(
-      aterm_proto_cflobdd(
-        no_distinction,
-        {aterm_pair(reach_p[0][0], read_list_from_string(reach_p[0][1].size() > 1 ? "[0,1]" : "[0]"))}
-      ),
-      down_cast<aterm_list>(reach_p[1])
-    );
+    const aterm_cflobdd& reach_q = reach_p.substitute(substitution.first, substitution.second);
 
     // Calculate the new reachability iteration
-    reach_new = reach_p || (reach_q && transition_relation).exists(indices_q);
+    reach_new = reach_p || (reach_q && transition_relation).exists(variables_q);
 
-    auto stop = std::chrono::high_resolution_clock::now();
+    const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::cout << "Step duration: " << duration.count() << " microseconds\n";
   } while (reach_p != reach_new);
-  std::cout << reach_new << "\n";
-  const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
-  std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
-  
-  // std::cout << formula << "\n";
-  // std::cout << to_string(variables) << "\n";
-  // std::cout << "Start CFLOBDD construction\n";
-  // auto start = std::chrono::high_resolution_clock::now();
-  // const aterm_cflobdd cflobdd = read_cflobdd_from_string(formula, variables);
-  // auto stop = std::chrono::high_resolution_clock::now();
-  // std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  // std::cout << "Time taken by CFLOBDD construction: " << duration.count() << " microseconds\n";
-  // const auto& [vertex_count, edge_count] = cflobdd.count_vertices_and_edges();
-  // std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
 
   return 0;
 }
