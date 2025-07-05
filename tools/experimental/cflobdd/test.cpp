@@ -429,6 +429,49 @@ std::tuple<
   return {variables_sub_indices, substitution, initial_formula, transition_formula};
 }
 
+const aterm_proto_cflobdd& i_1 = aterm_proto_cflobdd(1);
+const aterm_proto_cflobdd& p_1 = aterm_proto_cflobdd(1, 0);
+const aterm_proto_cflobdd& q_1 = aterm_proto_cflobdd(1, 1);
+
+aterm_proto_cflobdd reachability_substitute(const aterm_proto_cflobdd& reach_p)
+{
+  const size_t& level = reach_p.level();
+  if (!level) throw std::runtime_error("Cannot call on level 0");
+
+  if (level == 1)
+  {
+    // Switch p and q at this level
+    if (reach_p == p_1) return q_1;
+    else if (reach_p == i_1) return i_1;
+    else throw std::runtime_error("Unexpected proto-CFLOBDD on level 1");
+  }
+  else
+  {
+    // Recurse further down
+    const aterm_list& cvs_p = down_cast<aterm_list>(reach_p[1]);
+    aterm_list cvs_q;
+    for (reverse_term_list_iterator i = cvs_p.rbegin(); i != cvs_p.rend(); ++i)
+      {
+        const aterm_pair& cv = down_cast<aterm_pair>(*i);
+        cvs_q.push_front(aterm_pair(
+          reachability_substitute(down_cast<aterm_proto_cflobdd>(cv[0])),
+          down_cast<aterm_list>(cv[1])
+        ));
+      }
+    return aterm_proto_cflobdd(
+      reachability_substitute(down_cast<aterm_proto_cflobdd>(reach_p[0])),
+      cvs_q
+    );
+  }
+}
+
+aterm_cflobdd reachability_substitute(const aterm_cflobdd& reach_p)
+{
+  const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>(reach_p[0]);
+  const aterm_list& vs = down_cast<aterm_list>(reach_p[1]);
+  return aterm_cflobdd(reachability_substitute(c), vs);
+}
+
 int main()
 {
   aterm_cflobdd reach_p = aterm_cflobdd(0, false);
@@ -444,7 +487,7 @@ int main()
 
     // Update reach_p and reach_q for this iteration, constructing reach_q from reach_p
     reach_p = reach_new;
-    const aterm_cflobdd& reach_q = reach_p.substitute(substitution.first, substitution.second);
+    const aterm_cflobdd& reach_q = reachability_substitute(reach_p);
 
     // Calculate the new reachability iteration
     reach_new = reach_p || (reach_q && transition_relation).exists(variables_q);

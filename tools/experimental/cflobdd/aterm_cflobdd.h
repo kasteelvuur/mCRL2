@@ -321,7 +321,7 @@ public:
   /// \param indices The indices of the variables being replaced.
   /// \param substitution A CFLOBDD that matches the replaced and replacing variables.
   /// \return  The substituted CFLOBDD
-  aterm_cflobdd substitute(const std::vector<size_t>& indices, const aterm_cflobdd& substitution)
+  aterm_cflobdd substitute(const std::vector<size_t>& indices, const aterm_cflobdd& substitution) const noexcept
   {
     return (substitution && *this).exists(indices);
   }
@@ -330,7 +330,7 @@ public:
   ///   this[p := q] = \exists p : Bool . (p <=> q) && this
   /// \param substitution_indices The indices of the variables being replaced paired with their replacements.
   /// \return  The substituted CFLOBDD
-  aterm_cflobdd substitute(const std::vector<std::pair<size_t, size_t>>& substitution_indices)
+  aterm_cflobdd substitute(const std::vector<std::pair<size_t, size_t>>& substitution_indices) const noexcept
   {
     const size_t& level = down_cast<aterm_proto_cflobdd>((*this)[0]).level();
     aterm_cflobdd substitution = aterm_cflobdd(level, true);

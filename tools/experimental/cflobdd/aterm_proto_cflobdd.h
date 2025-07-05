@@ -84,6 +84,17 @@ public:
     assert(is_proto_cflobdd());
   }
 
+  /// \brief Proto-CFLOBDD inductive case (L, [L_0, ..., L_{n-1}], m).
+  /// \param c The proto-CFLOBDD L
+  /// \param cvs The list of proto-CFLOBDDs [L_0, ..., L_{n-1}] and mapping m merged into a list of pairs.
+  ///   Each proto-CFLOBDD L_i is paired with a list of mapping result values v_i such that
+  ///   L_i.out_degree() = v_i.size() and v_i[j] = m(i,j).
+  aterm_proto_cflobdd(const aterm_proto_cflobdd& c, const aterm_list& cvs)
+    : aterm(g_proto_cflobdd_c, c, cvs)
+  {
+    assert(is_proto_cflobdd());
+  }
+
   /// \brief Construct a no-distinction proto-CFLOBDD of a specific level.
   /// \param level The level of the no-distinction proto-CFLOBDD
   aterm_proto_cflobdd(const size_t& level)
@@ -139,17 +150,6 @@ public:
       };
       *this = aterm_proto_cflobdd(no_distinction, cvs);
     }
-  }
-
-  /// \brief Proto-CFLOBDD inductive case (L, [L_0, ..., L_{n-1}], m).
-  /// \param c The proto-CFLOBDD L
-  /// \param cvs The list of proto-CFLOBDDs [L_0, ..., L_{n-1}] and mapping m merged into a list of pairs.
-  ///   Each proto-CFLOBDD L_i is paired with a list of mapping result values v_i such that
-  ///   L_i.out_degree() = v_i.size() and v_i[j] = m(i,j).
-  aterm_proto_cflobdd(const aterm_proto_cflobdd& c, const aterm_list& cvs)
-    : aterm(g_proto_cflobdd_c, c, cvs)
-  {
-    assert(is_proto_cflobdd());
   }
 
   /// \brief Check if this term is a proto-CFLOBDD.
