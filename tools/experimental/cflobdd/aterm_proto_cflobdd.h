@@ -427,40 +427,45 @@ public:
   }
 
   /// \brief Calculate the product on a list of proto-CFLOBDDs.
-  /// \param c_list The list of proto-CFLOBDDs
+  /// \param c_vec The list of proto-CFLOBDDs
   /// \return The product
-  static aterm_pair product(const aterm_list& c_list) noexcept
+  static std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>> product(const std::vector<aterm_proto_cflobdd>& c_vec)
   {
-    assert(c_list.size());
+    assert(c_vec.size());
 
     // Check if the product has already been evaluated
-    static std::unordered_map<aterm_list, aterm_pair> cache;
-    std::unordered_map<aterm_list, aterm_pair>::const_iterator cached_product = cache.find(c_list);
+    static std::unordered_map<
+      std::vector<aterm_proto_cflobdd>,
+      std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>
+    > cache;
+    std::unordered_map<
+      std::vector<aterm_proto_cflobdd>,
+      std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>
+    >::const_iterator cached_product = cache.find(c_vec);
     if (cached_product != cache.end()) return cached_product->second;
 
-    const size_t& level = down_cast<aterm_proto_cflobdd>(c_list[0]).level();
+    const size_t& level = c_vec[0].level();
     const aterm_proto_cflobdd& no_distinction = aterm_proto_cflobdd(level);
-    const aterm_proto_cflobdd& v = aterm_proto_cflobdd_v();
+    const aterm_proto_cflobdd& v = aterm_proto_cflobdd(g_proto_cflobdd_v);
     bool all_no_distinction = true;
 
-    for (const aterm& c : c_list)
+    for (const aterm_proto_cflobdd& c : c_vec)
     {
       if (c == v)
       {
         // Return V if at least one proto-CFLOBDD in the list is V
-        aterm_list values_1;
-        aterm_list values_2;
+        std::vector<size_t> values_1;
+        std::vector<size_t> values_2;
 
-        for (reverse_term_list_iterator i = c_list.rbegin(); i != c_list.rend(); ++i)
+        for (const aterm_proto_cflobdd& c : c_vec)
         {
           // Out degree is either 0 for I or 1 for V
-          const size_t& out_degree = down_cast<aterm_proto_cflobdd>(*i).out_degree();
-          values_1.push_front(aterm_int(0));
-          values_2.push_front(aterm_int(out_degree));
+          values_1.push_back(0);
+          values_2.push_back(c.out_degree());
         }
 
-        const aterm_pair& product = aterm_pair(v, aterm_list({values_1, values_2}));
-        cache[c_list] = product;
+        const std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>& product = {v, {values_1, values_2}};
+        cache[c_vec] = product;
         return product;
       }
 
@@ -476,79 +481,71 @@ public:
     if (all_no_distinction)
     {
       // Return the no-distinction proto-CFLOBDD if all are no-distinction
-      aterm_list values;
-      for (const aterm& term : c_list)
-      {
-        values.push_front(aterm_int(0));
-      }
-
-      const aterm_pair& product = aterm_pair(v, aterm_list({values}));
-      cache[c_list] = product;
+      std::vector<size_t> values(c_vec.size(), 0);
+      const std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>& product = {no_distinction, {values}};
+      cache[c_vec] = product;
       return product;
     }
 
     // Recursively calculate the product of the entree proto-CFLOBDDs
-    aterm_list entrees;
-    for (reverse_term_list_iterator i = c_list.rbegin(); i != c_list.rend(); ++i) entrees.push_front((*i)[0]);
-    const aterm_pair& entree_product = product(entrees);
-    const aterm_proto_cflobdd& entree_proto_cflobdd = down_cast<aterm_proto_cflobdd>(entree_product.first());
-    const aterm_list& entree_results = down_cast<aterm_list>(entree_product.second());
+    std::vector<aterm_proto_cflobdd> entrees;
+    for (const aterm_proto_cflobdd& c : c_vec) entrees.push_back(c[0]);
+    const auto& [entree_product_proto_cflobdd, entree_product_results] = product(entrees);
+    assert(entree_product_proto_cflobdd.out_degree() == entree_product_results.size());
 
-    // @TODO: continue here
-
-    // Recursively calculate the pair product of the proto-CFLOBDDs found by following the entree product results
-    const std::vector<aterm> this_cvs = as_vector(down_cast<aterm_list>((*this)[1]));
-    const std::vector<aterm> other_cvs = as_vector(down_cast<aterm_list>(other[1]));
-    std::vector<aterm_pair> cvs;
-    std::vector<aterm_pair> value_pairs;
-    for (const aterm& entree_result : entree_results)
+    // Recursively calculate the product of the proto-CFLOBDDs found by following the entree product results
+    std::vector<aterm_pair> product_cvs;
+    std::vector<std::vector<size_t>> value_lists;
+    for (const std::vector<size_t>& entree_result : entree_product_results)
     {
-      const aterm_pair& entree_result_pair = down_cast<aterm_pair>(entree_result);
-      const aterm_int& this_i = down_cast<aterm_int>(entree_result_pair.first());
-      const aterm_int& other_i = down_cast<aterm_int>(entree_result_pair.second());
-      const aterm_pair& this_cv = down_cast<aterm_pair>(this_cvs[this_i.value()]);
-      const aterm_pair& other_cv = down_cast<aterm_pair>(other_cvs[other_i.value()]);
+      assert(c_vec.size() == entree_result.size());
 
-      // Calculate the pair product between the two proto-CFLOBDDs
-      const aterm_proto_cflobdd& this_c = down_cast<aterm_proto_cflobdd>(this_cv.first());
-      const aterm_proto_cflobdd& other_c = down_cast<aterm_proto_cflobdd>(other_cv.first());
-      const aterm_pair& pair_product = this_c.pair_product(other_c);
-      const aterm_proto_cflobdd& proto_cflobdd = down_cast<aterm_proto_cflobdd>(pair_product.first());
-      const aterm_list& product_result = down_cast<aterm_list>(pair_product.second());
+      // Extract data corresponding to this entree product result
+      std::vector<aterm_proto_cflobdd> sources;
+      std::vector<std::vector<aterm>> source_values;
+      for (size_t i = 0; i < c_vec.size(); i++)
+      {
+        const aterm_pair& cv = down_cast<aterm_pair>(as_vector(down_cast<aterm_list>(c_vec[i][1]))[entree_result[i]]);
+        sources.push_back(cv.first());
+        source_values.push_back(as_vector(down_cast<aterm_list>(cv.second())));
+      }
+
+      // Calculate the product between the proto-CFLOBDDs
+      const auto& [product_proto_cflobdd, product_results] = product(sources);
+      assert(product_proto_cflobdd.out_degree() == product_results.size());
 
       // Calculate the corresponding result mapping values
-      const std::vector<aterm> this_values = as_vector(down_cast<aterm_list>(this_cv.second()));
-      const std::vector<aterm> other_values = as_vector(down_cast<aterm_list>(other_cv.second()));
       std::vector<aterm_int> return_values;
-      for (const aterm& product_result : product_result)
+      for (const std::vector<size_t>& product_result : product_results)
       {
-        // Get the return values index j for both proto-CFLOBDDs
-        const aterm_pair& product_result_pair = down_cast<aterm_pair>(product_result);
-        const aterm_int& this_j = down_cast<aterm_int>(product_result_pair.first());
-        const aterm_int& other_j = down_cast<aterm_int>(product_result_pair.second());
+        assert(c_vec.size() == product_result.size());
 
-        // Get the value corresponding to m(i,j) for both proto-CFLOBDDs
-        const aterm_int& this_value = down_cast<aterm_int>(this_values[this_j.value()]);
-        const aterm_int& other_value = down_cast<aterm_int>(other_values[other_j.value()]);
-        const aterm_pair& value_pair = aterm_pair(this_value, other_value);
+        // Get the values corresponding to m(i,j)
+        std::vector<size_t> values;
+        for (size_t i = 0; i < c_vec.size(); i++)
+        {
+          const size_t& j = product_result[i];
+          values.push_back(down_cast<aterm_int>(source_values[i][j]).value());
+        }
 
-        // Add the pair of values if it is not included yet
-        // Set the return value m(i,j) for the new proto-CFLOBDD to the index of the pair
-        const std::vector<aterm_pair>::iterator& value_location = std::find(value_pairs.begin(), value_pairs.end(), value_pair);
-        const size_t& index = value_location - value_pairs.begin();
-        if (value_location == value_pairs.end()) value_pairs.push_back(value_pair);
+        // Add the values to the value lists if it is not included yet
+        // Set the return value m(i,j) for the new proto-CFLOBDD to the index of the list
+        const std::vector<std::vector<size_t>>::iterator& value_location = std::find(value_lists.begin(), value_lists.end(), values);
+        const size_t& index = value_location - value_lists.begin();
+        if (value_location == value_lists.end()) value_lists.push_back(values);
         return_values.push_back(aterm_int(index));
       }
-      cvs.push_back(aterm_pair(proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
+
+      product_cvs.push_back(aterm_pair(product_proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
     }
 
     // Construct, cache, and return the new proto-CFLOBDD and value pairs
-    const aterm_pair& pair_product = aterm_pair(
-      aterm_proto_cflobdd(entree_proto_cflobdd, aterm_list(cvs.begin(), cvs.end())),
-      aterm_list(value_pairs.begin(), value_pairs.end())
-    );
-    cache[aterm_pair(*this, other)] = pair_product;
-    return pair_product;
+    const std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>& product = {
+      aterm_proto_cflobdd(entree_product_proto_cflobdd, aterm_list(product_cvs.begin(), product_cvs.end())),
+      value_lists
+    };
+    cache[c_vec] = product;
+    return product;
   }
 
   /// \brief Calculate the pair product between this and another proto-CFLOBDD.
