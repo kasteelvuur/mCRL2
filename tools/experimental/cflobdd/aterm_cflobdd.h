@@ -188,23 +188,19 @@ public:
     assert(c_1.level() == c_2.level());
 
     // Calculate the pair product
-    const aterm_pair& pair_product = c_1.pair_product(c_2);
-    const aterm_proto_cflobdd& product_proto_cflobdd = down_cast<aterm_proto_cflobdd>(pair_product.first());
-    const aterm_list& product_results = down_cast<aterm_list>(pair_product.second());
+    const auto& [product_proto_cflobdd, product_results] = aterm_proto_cflobdd::product({c_1, c_2});
 
     // Calculate new result mapping values
     // Reversely iterate over the result mapping pairs such that we push in the correct order
     const std::vector<aterm>& this_value_map = as_vector(down_cast<aterm_list>((*this)[1]));
     const std::vector<aterm>& other_value_map = as_vector(down_cast<aterm_list>(other[1]));
     aterm_list combined_results;
-    for (reverse_term_list_iterator i = product_results.rbegin(); i != product_results.rend(); ++i)
+    for (size_t i = product_results.size(); i > 0; i--)
     {
-      const aterm_pair& result_pair = down_cast<aterm_pair>(*i);
-      const aterm_int& value_1 = down_cast<aterm_int>(result_pair.first());
-      const aterm_int& value_2 = down_cast<aterm_int>(result_pair.second());
-      const aterm_int& value_1_mapped = down_cast<aterm_int>(this_value_map[value_1.value()]);
-      const aterm_int& value_2_mapped = down_cast<aterm_int>(other_value_map[value_2.value()]);
-      combined_results.push_front(func(value_1_mapped, value_2_mapped));
+      combined_results.push_front(func(
+        down_cast<aterm_int>(this_value_map[product_results[i - 1][0]]),
+        down_cast<aterm_int>(other_value_map[product_results[i - 1][1]])
+      ));
     }
 
     // Collapse the new result mapping values to get rid of duplicates and reduced mapping violations

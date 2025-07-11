@@ -434,14 +434,13 @@ public:
     assert(c_vec.size());
 
     // Check if the product has already been evaluated
-    static std::unordered_map<
-      std::vector<aterm_proto_cflobdd>,
+    // Uses aterm_list as cache keys for easy mitigation of hashing problems during development
+    const aterm_list& key = aterm_list(c_vec.begin(), c_vec.end());
+    static std::unordered_map<aterm_list, std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>> cache;
+    const std::unordered_map<
+      aterm_list,
       std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>
-    > cache;
-    std::unordered_map<
-      std::vector<aterm_proto_cflobdd>,
-      std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>
-    >::const_iterator cached_product = cache.find(c_vec);
+    >::const_iterator& cached_product = cache.find(key);
     if (cached_product != cache.end()) return cached_product->second;
 
     const size_t& level = c_vec[0].level();
@@ -461,11 +460,11 @@ public:
         {
           // Out degree is either 0 for I or 1 for V
           values_1.push_back(0);
-          values_2.push_back(c.out_degree());
+          values_2.push_back(c.out_degree() - 1);
         }
 
         const std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>& product = {v, {values_1, values_2}};
-        cache[c_vec] = product;
+        cache[key] = product;
         return product;
       }
 
@@ -483,7 +482,7 @@ public:
       // Return the no-distinction proto-CFLOBDD if all are no-distinction
       std::vector<size_t> values(c_vec.size(), 0);
       const std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>& product = {no_distinction, {values}};
-      cache[c_vec] = product;
+      cache[key] = product;
       return product;
     }
 
@@ -505,7 +504,7 @@ public:
       std::vector<std::vector<aterm>> source_values;
       for (size_t i = 0; i < c_vec.size(); i++)
       {
-        const aterm_pair& cv = down_cast<aterm_pair>(as_vector(down_cast<aterm_list>(c_vec[i][1]))[entree_result[i]]);
+        const aterm_pair cv = down_cast<aterm_pair>(as_vector(down_cast<aterm_list>(c_vec[i][1]))[entree_result[i]]);
         sources.push_back(cv.first());
         source_values.push_back(as_vector(down_cast<aterm_list>(cv.second())));
       }
@@ -544,7 +543,7 @@ public:
       aterm_proto_cflobdd(entree_product_proto_cflobdd, aterm_list(product_cvs.begin(), product_cvs.end())),
       value_lists
     };
-    cache[c_vec] = product;
+    cache[key] = product;
     return product;
   }
 
