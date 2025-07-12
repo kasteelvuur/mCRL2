@@ -725,6 +725,106 @@ public:
     return new_proto_cflobdd;
   }
 
+  /// \brief Apply existential quantification to this proto-CFLOBDD
+  /// \param indices The indices of the proposition variables in the existential quantification 
+  /// \return The new proto-CFLOBDD with a list of sets for each new exit vertex.
+  ///   Each set contains the original exit vertices represented by the corresponding new exit vertex.
+  std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>> exists(const std::vector<size_t>& indices) const noexcept
+  {
+    // @TODO: Cache
+
+    // Nothing changes without indices of proposition letters or when the out degree is 1
+    const size_t& out_degree = this->out_degree();
+    if (indices.empty() || out_degree == 1)
+    {
+      std::vector<std::unordered_set<size_t>> results;
+      for (size_t i = 0; i < out_degree; i++) results.push_back({i});
+      // @TODO: Cache
+      return {*this, results};
+    }
+
+    // If this proto-CFLOBDD is V and we reached this far, then it should become I
+    // @TODO: Cache
+    if (this->function() == g_proto_cflobdd_v) return {aterm_proto_cflobdd(g_proto_cflobdd_i), {{0,1}}};
+
+    // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) remains
+    const aterm_proto_cflobdd& source_entree = down_cast<aterm_proto_cflobdd>((*this)[0]);
+    const aterm_list& source_cvs = down_cast<aterm_list>((*this)[1]);
+    std::vector<std::vector<size_t>> m;
+    for (const aterm& cv : source_cvs)
+    {
+      std::vector<size_t> values;
+      const aterm_list& aterm_values = down_cast<aterm_list>(down_cast<aterm_pair>(cv).second());
+      for (const aterm& value : aterm_values) values.push_back(down_cast<aterm_int>(value).value());
+      m.push_back(values);
+    }
+
+    // Split the indices
+    const size_t& index_split = std::pow(2, source_entree.level());
+    std::vector<size_t> indices_left;
+    std::vector<size_t> indices_right;
+    for (const size_t& index : indices)
+    {
+      if (index < index_split) indices_left.push_back(index);
+      else indices_right.push_back(index);
+    }
+
+    // Recursively calculate the new proto-CFLOBDDs
+    const auto& [target_entree, target_entree_values] = source_entree.exists(indices_left);
+    std::vector<aterm_proto_cflobdd> target_exits;
+    std::vector<std::vector<std::unordered_set<size_t>>> target_exit_values;
+    for (const aterm& cv : source_cvs)
+    {
+      const aterm_proto_cflobdd& exit = down_cast<aterm_proto_cflobdd>(down_cast<aterm_pair>(cv).first());
+      const auto& [proto_cflobdd, values] = exit.exists(indices_right);
+      target_exits.push_back(proto_cflobdd);
+      target_exit_values.push_back(values);
+    }
+
+    // Combine target proto-CFLOBDDs
+    std::vector<aterm_pair> target_cvs;
+    std::vector<std::unordered_set<size_t>> value_sets;
+    for (size_t i = 0; i < target_entree_values.size(); i++)
+    {
+      // Calculate the product of the proto-CFLOBDDs corresponding to the current values
+      const std::vector<size_t>& entree_values = std::vector<size_t>(target_entree_values[i].begin(), target_entree_values[i].end());
+      std::vector<aterm_proto_cflobdd> product_proto_cflobdds;
+      for (const size_t& value : entree_values) product_proto_cflobdds.push_back(target_exits[value]);
+      const auto& [product_proto_cflobdd, product_results] = product(product_proto_cflobdds);
+
+      // Combine the product results with the preliminary exit values
+      std::vector<aterm_int> return_values;
+      for (size_t j = 0; j < product_results.size(); j++)
+      {
+        std::unordered_set<size_t> values;
+        for (size_t k = 0; k < product_results[j].size(); k++)
+        {
+          for (const size_t& l : target_exit_values[entree_values[k]][product_results[j][k]])
+          {
+            values.insert(m[entree_values[k]][l]);
+          }
+        }
+
+        // Add the values to the value sets if it is not included yet
+        // Set the return value m(i,j) for the new proto-CFLOBDD to the index of the set
+        const std::vector<std::unordered_set<size_t>>::iterator& value_location = std::find(value_sets.begin(), value_sets.end(), values);
+        const size_t& index = value_location - value_sets.begin();
+        if (value_location == value_sets.end()) value_sets.push_back(values);
+        return_values.push_back(aterm_int(index));
+      }
+
+      target_cvs.push_back(aterm_pair(product_proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
+    }
+
+    // Construct, cache, and return the new proto-CFLOBDD and value pairs
+    const std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>& result = {
+      aterm_proto_cflobdd(target_entree, aterm_list(target_cvs.begin(), target_cvs.end())),
+      value_sets
+    };
+    // @TODO: Cache
+    return result;
+  }
+
   /// \brief Fix a proposition letter assignment.
   /// \param index The index of the proposition letter
   /// \param value The fixed value
