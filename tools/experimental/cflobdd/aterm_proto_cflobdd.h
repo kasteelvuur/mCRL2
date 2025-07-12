@@ -731,7 +731,17 @@ public:
   ///   Each set contains the original exit vertices represented by the corresponding new exit vertex.
   std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>> exists(const std::vector<size_t>& indices) const noexcept
   {
-    // @TODO: Cache
+    // Check if the existential quantification has already been evaluated
+    // Uses aterm_pair as cache keys for easy mitigation of hashing problems during development
+    aterm_list key_indices;
+    for (size_t i = indices.size(); i > 0; i--) key_indices.push_front(aterm_int(indices[i]));
+    const aterm_pair& key = aterm_pair(*this, key_indices);
+    static std::unordered_map<aterm_pair, std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>> cache;
+    const std::unordered_map<
+      aterm_pair,
+      std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>
+    >::const_iterator& cached_result = cache.find(key);
+    if (cached_result != cache.end()) return cached_result->second;
 
     // Nothing changes without indices of proposition letters or when the out degree is 1
     const size_t& out_degree = this->out_degree();
@@ -739,13 +749,21 @@ public:
     {
       std::vector<std::unordered_set<size_t>> results;
       for (size_t i = 0; i < out_degree; i++) results.push_back({i});
-      // @TODO: Cache
-      return {*this, results};
+      const std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>& result = {*this, results};
+      cache[key] = result;
+      return result;
     }
 
     // If this proto-CFLOBDD is V and we reached this far, then it should become I
-    // @TODO: Cache
-    if (this->function() == g_proto_cflobdd_v) return {aterm_proto_cflobdd(g_proto_cflobdd_i), {{0,1}}};
+    if (this->function() == g_proto_cflobdd_v)
+    {
+      const std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>& result = {
+        aterm_proto_cflobdd(g_proto_cflobdd_i),
+        {{0,1}}
+      };
+      cache[key] = result;
+      return result;
+    } 
 
     // Inductive proto-CFLOBDD (L, [L_0, ..., L_{n-1}], m) remains
     const aterm_proto_cflobdd& source_entree = down_cast<aterm_proto_cflobdd>((*this)[0]);
@@ -821,7 +839,7 @@ public:
       aterm_proto_cflobdd(target_entree, aterm_list(target_cvs.begin(), target_cvs.end())),
       value_sets
     };
-    // @TODO: Cache
+    cache[key] = result;
     return result;
   }
 
