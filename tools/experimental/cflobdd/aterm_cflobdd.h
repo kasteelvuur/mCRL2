@@ -276,14 +276,42 @@ public:
   /// \return The new CFLOBDD
   aterm_cflobdd exists(const std::vector<size_t>& indices) const noexcept
   {
-    aterm_cflobdd current = *this;
-    for (const size_t& index : indices)
+    const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
+
+    // Calculate the existential quantification on the underlying proto-CFLOBDD
+    const auto& [proto_cflobdd, values] = down_cast<aterm_proto_cflobdd>((*this)[0]).exists(indices);
+
+    // Calculate new result mapping values by checking if a true evaluation is present in the set
+    // Reversely iterate over the result mapping such that we push in the correct order
+    const std::vector<aterm>& value_map = as_vector(down_cast<aterm_list>((*this)[1]));
+    aterm_list combined_results;
+    for (size_t i = values.size(); i > 0; i--)
     {
-      const aterm_cflobdd& fixed_false = current.fix(index, aterm_int(0));
-      const aterm_cflobdd& fixed_true = current.fix(index, aterm_int(1));
-      current = fixed_false || fixed_true;
+      aterm_int result = aterm_int(0);
+      for (const size_t& value : values[i - 1])
+      {
+        if (down_cast<aterm_int>(value_map[value]).value())
+        {
+          result = aterm_int(1);
+          break;
+        }
+      }
+      combined_results.push_front(result);
     }
-    return current;
+
+    // Collapse the new result mapping values to get rid of duplicates and reduced mapping violations
+    const aterm_pair& collapsed_results = collapse_classes_leftmost(combined_results);
+    const aterm_list& projected_results = down_cast<aterm_list>(collapsed_results.first());
+    const aterm_list& renumbered_results = down_cast<aterm_list>(collapsed_results.second());
+
+    // Reduce the pair product proto-CFLOBDD according to the renumbered results
+    const aterm_proto_cflobdd& reduced_proto_cflobdd = proto_cflobdd.reduce(renumbered_results);
+    assert(reduced_proto_cflobdd.is_reduced());
+
+    const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
+    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+    return aterm_cflobdd(reduced_proto_cflobdd, projected_results);
   }
 
   /// \brief Fix a proposition letter assignment.
