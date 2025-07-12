@@ -734,7 +734,7 @@ public:
     // Check if the existential quantification has already been evaluated
     // Uses aterm_pair as cache keys for easy mitigation of hashing problems during development
     aterm_list key_indices;
-    for (size_t i = indices.size(); i > 0; i--) key_indices.push_front(aterm_int(indices[i]));
+    for (size_t i = indices.size(); i > 0; i--) key_indices.push_front(aterm_int(indices[i - 1]));
     const aterm_pair& key = aterm_pair(*this, key_indices);
     static std::unordered_map<aterm_pair, std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>> cache;
     const std::unordered_map<
@@ -784,7 +784,7 @@ public:
     for (const size_t& index : indices)
     {
       if (index < index_split) indices_left.push_back(index);
-      else indices_right.push_back(index);
+      else indices_right.push_back(index - index_split);
     }
 
     // Recursively calculate the new proto-CFLOBDDs
@@ -825,10 +825,15 @@ public:
 
         // Add the values to the value sets if it is not included yet
         // Set the return value m(i,j) for the new proto-CFLOBDD to the index of the set
-        const std::vector<std::unordered_set<size_t>>::iterator& value_location = std::find(value_sets.begin(), value_sets.end(), values);
-        const size_t& index = value_location - value_sets.begin();
-        if (value_location == value_sets.end()) value_sets.push_back(values);
-        return_values.push_back(aterm_int(index));
+        // @TODO: Replace slow version with something that actually reuses values
+        // @TODO: Currently causes issues because shared values can require changes to entree proto-CFLOBDD
+        // @TODO: Possible resolve found in explicit reduction step?
+        // const std::vector<std::unordered_set<size_t>>::iterator& value_location = std::find(value_sets.begin(), value_sets.end(), values);
+        // const size_t& index = value_location - value_sets.begin();
+        // if (value_location == value_sets.end()) value_sets.push_back(values);
+        // return_values.push_back(aterm_int(index));
+        return_values.push_back(aterm_int(value_sets.size()));
+        value_sets.push_back(values);
       }
 
       target_cvs.push_back(aterm_pair(product_proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
