@@ -491,6 +491,10 @@ public:
     for (const aterm_proto_cflobdd& c : c_vec) entrees.push_back(c[0]);
     const auto& [entree_product_proto_cflobdd, entree_product_results] = product(entrees);
     assert(entree_product_proto_cflobdd.out_degree() == entree_product_results.size());
+    
+    // Extract the proto-CFLOBDD value pairs from the sources to be easily accessible
+    std::vector<std::vector<aterm>> source_cvs;
+    for (const aterm_proto_cflobdd& c : c_vec) source_cvs.push_back(as_vector(down_cast<aterm_list>(c[1])));
 
     // Recursively calculate the product of the proto-CFLOBDDs found by following the entree product results
     std::vector<aterm_pair> product_cvs;
@@ -504,9 +508,9 @@ public:
       std::vector<std::vector<aterm>> source_values;
       for (size_t i = 0; i < c_vec.size(); i++)
       {
-        const aterm_pair cv = down_cast<aterm_pair>(as_vector(down_cast<aterm_list>(c_vec[i][1]))[entree_result[i]]);
+        const aterm_pair cv = down_cast<aterm_pair>(source_cvs[i][entree_result[i]]);
         sources.push_back(cv.first());
-        source_values.push_back(as_vector(down_cast<aterm_list>(cv.second())));
+        source_values.push_back(as_vector(down_cast<aterm_list>(cv.second()))); // @TODO: Move this as_vector outside loops?
       }
 
       // Calculate the product between the proto-CFLOBDDs
