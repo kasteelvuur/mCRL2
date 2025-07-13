@@ -800,6 +800,7 @@ public:
     }
 
     // Combine target proto-CFLOBDDs
+    std::vector<aterm_int> reduce_values;
     std::vector<aterm_pair> target_cvs;
     std::vector<std::unordered_set<size_t>> value_sets;
     for (size_t i = 0; i < target_entree_values.size(); i++)
@@ -825,23 +826,35 @@ public:
 
         // Add the values to the value sets if it is not included yet
         // Set the return value m(i,j) for the new proto-CFLOBDD to the index of the set
-        // @TODO: Replace slow version with something that actually reuses values
-        // @TODO: Currently causes issues because shared values can require changes to entree proto-CFLOBDD
-        // @TODO: Possible resolve found in explicit reduction step?
-        // const std::vector<std::unordered_set<size_t>>::iterator& value_location = std::find(value_sets.begin(), value_sets.end(), values);
-        // const size_t& index = value_location - value_sets.begin();
-        // if (value_location == value_sets.end()) value_sets.push_back(values);
-        // return_values.push_back(aterm_int(index));
-        return_values.push_back(aterm_int(value_sets.size()));
-        value_sets.push_back(values);
+        const std::vector<std::unordered_set<size_t>>::iterator& value_location = std::find(value_sets.begin(), value_sets.end(), values);
+        const size_t& index = value_location - value_sets.begin();
+        if (value_location == value_sets.end()) value_sets.push_back(values);
+        return_values.push_back(aterm_int(index));
       }
 
-      target_cvs.push_back(aterm_pair(product_proto_cflobdd, aterm_list(return_values.begin(), return_values.end())));
+      // Collapse the new result mapping values to get rid of duplicates and reduced mapping violations
+      const aterm_pair& collapsed_results = collapse_classes_leftmost(aterm_list(return_values.begin(), return_values.end()));
+      const aterm_list& projected_results = down_cast<aterm_list>(collapsed_results.first());
+      const aterm_list& renumbered_results = down_cast<aterm_list>(collapsed_results.second());
+
+      // Reduce the product proto-CFLOBDD according to the renumbered results
+      const aterm_proto_cflobdd& reduced_proto_cflobdd = product_proto_cflobdd.reduce(renumbered_results);
+      assert(reduced_proto_cflobdd.is_reduced());
+
+      // Add the proto-CFLOBDD and result mapping pair if it is not included yet
+      const aterm_pair& new_cv = aterm_pair(reduced_proto_cflobdd, projected_results);
+      const std::vector<aterm_pair>::iterator& cv_location = std::find(target_cvs.begin(), target_cvs.end(), new_cv);
+      const size_t& cv_index = cv_location - target_cvs.begin();
+      if (cv_location == target_cvs.end()) target_cvs.push_back(new_cv);
+      reduce_values.push_back(aterm_int(cv_index));
     }
+
+    // Reduce the entree proto-CFLOBDD to propogate looped reductions
+    const aterm_proto_cflobdd& reduced_entree = target_entree.reduce(aterm_list(reduce_values.begin(), reduce_values.end()));
 
     // Construct, cache, and return the new proto-CFLOBDD and value pairs
     const std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>& result = {
-      aterm_proto_cflobdd(target_entree, aterm_list(target_cvs.begin(), target_cvs.end())),
+      aterm_proto_cflobdd(reduced_entree, aterm_list(target_cvs.begin(), target_cvs.end())),
       value_sets
     };
     cache[key] = result;
@@ -947,7 +960,7 @@ public:
         );
         const std::vector<aterm_pair>::iterator& cv_location = std::find(new_cvs_vec.begin(), new_cvs_vec.end(), new_cv);
         const size_t& cv_index = cv_location - new_cvs_vec.begin();
-        if (std::find(new_cvs_vec.begin(), new_cvs_vec.end(), new_cv) == new_cvs_vec.end()) new_cvs_vec.push_back(new_cv);
+        if (cv_location == new_cvs_vec.end()) new_cvs_vec.push_back(new_cv);
         reduce_values_vec.push_back(aterm_int(cv_index));
       }
 

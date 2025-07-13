@@ -310,6 +310,7 @@ public:
 
     const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
     std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "Exists duration: " << duration.count() << " microseconds\n";
 
     return aterm_cflobdd(reduced_proto_cflobdd, projected_results);
   }
