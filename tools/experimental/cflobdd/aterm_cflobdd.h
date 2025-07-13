@@ -315,32 +315,6 @@ public:
     return aterm_cflobdd(reduced_proto_cflobdd, projected_results);
   }
 
-  /// \brief Fix a proposition letter assignment.
-  /// \param index The index of the proposition letter
-  /// \param value The fixed value
-  /// \return The new CFLOBDD
-  aterm_cflobdd fix(const size_t& index, const aterm_int& value) const noexcept
-  {
-    // Calculate the new proto-CFLOBDD
-    const aterm_proto_cflobdd& c = down_cast<aterm_proto_cflobdd>((*this)[0]);
-    const aterm_pair& fixed_pair = c.fix(index, value);
-    const aterm_proto_cflobdd& fixed_c = down_cast<aterm_proto_cflobdd>(fixed_pair.first());
-
-    // Update the result value mapping accordingly
-    const std::vector<aterm>& f = as_vector(down_cast<aterm_list>((*this)[1]));
-    const aterm_list& fixed_values = down_cast<aterm_list>(fixed_pair.second());
-    aterm_list fixed_f;
-    for (reverse_term_list_iterator i = fixed_values.rbegin(); i != fixed_values.rend(); ++i)
-    {
-      const size_t& value = down_cast<aterm_int>(*i).value();
-      fixed_f.push_front(f[value]);
-    }
-
-    const aterm_cflobdd& fixed_cflobdd = aterm_cflobdd(fixed_c, fixed_f);
-    assert(!this->is_reduced() || fixed_cflobdd.is_reduced());
-    return fixed_cflobdd;
-  }
-
   /// \brief Compute the substitution of this CFLOBDD according to the formula:
   ///   this[p := q] = \exists p : Bool . (p <=> q) && this
   /// \param indices The indices of the variables being replaced.
