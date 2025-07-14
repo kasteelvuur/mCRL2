@@ -20,18 +20,6 @@
 namespace atermpp
 {
 
-/// \brief Constructs an aterm_cflobdd that encodes a single variable.
-/// \param level The desired level of the aterm_cflobdd.
-/// \param variable_index The index of the encoded variable.
-/// \return The constructed aterm_cflobdd.
-aterm_cflobdd construct_cflobdd(const size_t& level, const size_t& variable_index);
-
-/// \brief Constructs an aterm_proto_cflobdd that encodes a single variable.
-/// \param level The desired level of the aterm_proto_cflobdd.
-/// \param variable_index The index of the encoded variable.
-/// \return The constructed aterm_proto_cflobdd.
-aterm_proto_cflobdd construct_proto_cflobdd(const size_t& level, const size_t& variable_index);
-
 /// \brief Reads an aterm_cflobdd from a string. The string can be in either binary or text format.
 ///   Assumes alphanumeric proposition variables and operator precedence from high to low as: !, &&, ||, =>, <=>.
 /// @param s The string to read from.

@@ -429,14 +429,19 @@ public:
   /// \brief Calculate the product on a list of proto-CFLOBDDs.
   /// \param c_vec The list of proto-CFLOBDDs
   /// \return The product
-  static std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>> product(const std::vector<aterm_proto_cflobdd>& c_vec)
+  static std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>> product(const std::vector<aterm_proto_cflobdd>& c_vec, const bool& clear_cache = false)
   {
-    assert(c_vec.size());
+    assert(c_vec.size() || clear_cache);
 
     // Check if the product has already been evaluated
     // Uses aterm_list as cache keys for easy mitigation of hashing problems during development
     const aterm_list& key = aterm_list(c_vec.begin(), c_vec.end());
     static std::unordered_map<aterm_list, std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>> cache;
+    if (clear_cache)
+    {
+      cache.clear();
+      return {};
+    }
     const std::unordered_map<
       aterm_list,
       std::pair<aterm_proto_cflobdd, std::vector<std::vector<size_t>>>
@@ -510,7 +515,7 @@ public:
       {
         const aterm_pair cv = down_cast<aterm_pair>(source_cvs[i][entree_result[i]]);
         sources.push_back(cv.first());
-        source_values.push_back(as_vector(down_cast<aterm_list>(cv.second()))); // @TODO: Move this as_vector outside loops?
+        source_values.push_back(as_vector(down_cast<aterm_list>(cv.second())));
       }
 
       // Calculate the product between the proto-CFLOBDDs
@@ -554,10 +559,15 @@ public:
   /// \brief Reduce this proto-CFLOBDD according to the new return values.
   /// \param values The new return values
   /// \return The reduced proto-CFLOBDD
-  aterm_proto_cflobdd reduce(const aterm_list& values) const noexcept
+  aterm_proto_cflobdd reduce(const aterm_list& values, const bool& clear_cache = false) const noexcept
   {
     // Check if the reduction has already been evaluated
     static std::unordered_map<aterm_pair, aterm_proto_cflobdd> cache;
+    if (clear_cache)
+    {
+      cache.clear();
+      return aterm_proto_cflobdd(g_proto_cflobdd_i);
+    }
     std::unordered_map<aterm_pair, aterm_proto_cflobdd>::const_iterator cached_reduction = cache.find(aterm_pair(*this, values));
     if (cached_reduction != cache.end()) return cached_reduction->second;
 
@@ -624,7 +634,7 @@ public:
   /// \param indices The indices of the proposition variables in the existential quantification 
   /// \return The new proto-CFLOBDD with a list of sets for each new exit vertex.
   ///   Each set contains the original exit vertices represented by the corresponding new exit vertex.
-  std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>> exists(const std::vector<size_t>& indices) const noexcept
+  std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>> exists(const std::vector<size_t>& indices, const bool& clear_cache = false) const noexcept
   {
     // Check if the existential quantification has already been evaluated
     // Uses aterm_pair as cache keys for easy mitigation of hashing problems during development
@@ -632,6 +642,11 @@ public:
     for (size_t i = indices.size(); i > 0; i--) key_indices.push_front(aterm_int(indices[i - 1]));
     const aterm_pair& key = aterm_pair(*this, key_indices);
     static std::unordered_map<aterm_pair, std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>> cache;
+    if (clear_cache)
+    {
+      cache.clear();
+      return {};
+    }
     const std::unordered_map<
       aterm_pair,
       std::pair<aterm_proto_cflobdd, std::vector<std::unordered_set<size_t>>>
@@ -754,6 +769,13 @@ public:
     };
     cache[key] = result;
     return result;
+  }
+
+  void clear_cache() const noexcept
+  {
+    product({}, true);
+    reduce({}, true);
+    exists({}, true);
   }
 };
 

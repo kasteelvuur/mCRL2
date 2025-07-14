@@ -276,8 +276,6 @@ public:
   /// \return The new CFLOBDD
   aterm_cflobdd exists(const std::vector<size_t>& indices) const noexcept
   {
-    const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
-
     // Calculate the existential quantification on the underlying proto-CFLOBDD
     const auto& [proto_cflobdd, values] = down_cast<aterm_proto_cflobdd>((*this)[0]).exists(indices);
 
@@ -307,10 +305,6 @@ public:
     // Reduce the pair product proto-CFLOBDD according to the renumbered results
     const aterm_proto_cflobdd& reduced_proto_cflobdd = proto_cflobdd.reduce(renumbered_results);
     assert(reduced_proto_cflobdd.is_reduced());
-
-    const std::chrono::steady_clock::time_point& stop = std::chrono::high_resolution_clock::now();
-    std::chrono::microseconds duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "Exists duration: " << duration.count() << " microseconds\n";
 
     return aterm_cflobdd(reduced_proto_cflobdd, projected_results);
   }

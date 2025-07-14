@@ -481,6 +481,9 @@ int main()
 
   do
   {
+    // Clear cache for each iteration to prevent memory shortage
+    down_cast<aterm_proto_cflobdd>(reach_new[0]).clear_cache();
+
     const auto& [vertex_count, edge_count] = reach_new.count_vertices_and_edges();
     std::cout << "Vertex count: " << vertex_count << "\t|\t" << "Edge count: " << edge_count << "\n";
     const std::chrono::steady_clock::time_point& start = std::chrono::high_resolution_clock::now();
