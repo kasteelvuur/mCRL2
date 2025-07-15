@@ -33,6 +33,13 @@ aterm_cflobdd read_cflobdd_from_string(const std::string& s);
 /// \return The term corresponding to the string.
 aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::vector<std::string>& variables);
 
+/// \brief Reads an aterm_cflobdd from a string. The string can be in either binary or text format.
+///   Assumes alphanumeric proposition variables and operator precedence from high to low as: !, &&, ||, =>, <=>.
+/// \param s The string to read from.
+/// \param variables The variables names mapped to the corresponding cflobdds.
+/// \return The term corresponding to the string.
+aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::unordered_map<std::string, aterm_cflobdd>& variables);
+
 /// \brief Reads CFLOBDD terms in textual format from an input stream.
 class text_aterm_cflobdd_istream final : public aterm_istream
 {
@@ -47,6 +54,7 @@ public:
 
 public:
   text_aterm_cflobdd_istream(std::istream& os, const std::vector<std::string>& variables);
+  text_aterm_cflobdd_istream(std::istream& os, const std::unordered_map<std::string, aterm_cflobdd>& variables);
 
   void get(aterm& t) override;
 
@@ -81,7 +89,7 @@ private:
   int next_char(bool skip_whitespace = true, bool required = false);
 
   std::istream& m_stream;
-  const std::vector<std::string>& m_variables;
+  std::unordered_map<std::string, aterm_cflobdd> m_variables;
   const std::size_t m_level;
 
   std::size_t m_line = 0; ///< The line number of the current character.

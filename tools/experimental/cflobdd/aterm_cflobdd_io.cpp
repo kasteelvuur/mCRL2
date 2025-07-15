@@ -32,7 +32,28 @@ aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::vector<s
   return down_cast<aterm_cflobdd>(t);
 }
 
+aterm_cflobdd read_cflobdd_from_string(const std::string& s, const std::unordered_map<std::string, aterm_cflobdd>& variables)
+{
+  std::stringstream ss(s);
+  aterm t;
+  text_aterm_cflobdd_istream(ss, variables).get(t);
+  return down_cast<aterm_cflobdd>(t);
+}
+
 text_aterm_cflobdd_istream::text_aterm_cflobdd_istream(std::istream& is, const std::vector<std::string>& variables)
+  : m_stream(is), m_level(std::ceil(std::log2(variables.size())))
+{
+  character = next_char();
+
+  // Map the variables to their corresponding CFLOBDDs
+  const size_t& variable_count = variables.size();
+  for (size_t i = 0; i < variable_count; i++)
+  {
+    m_variables[variables[i]] = aterm_cflobdd(m_level, i);
+  }
+}
+
+text_aterm_cflobdd_istream::text_aterm_cflobdd_istream(std::istream& is, const std::unordered_map<std::string, aterm_cflobdd>& variables)
   : m_stream(is), m_variables(variables), m_level(std::ceil(std::log2(variables.size())))
 {
   character = next_char();
@@ -196,16 +217,13 @@ aterm_cflobdd text_aterm_cflobdd_istream::parse_primary(int& character)
       character = next_char();
     }
 
-    // Get the index of the proposition variable
-    const std::vector<std::string>::const_iterator& location = std::find(m_variables.begin(), m_variables.end(), name);
-    if (location == m_variables.end())
+    // Get the CFLOBDD representing the proposition variable
+    std::unordered_map<std::string, aterm_cflobdd>::const_iterator variable = m_variables.find(name);
+    if (variable == m_variables.end())
     {
       throw std::runtime_error("Unknown variable '" + name + "' while parsing a CFLOBDD term");
     }
-    const size_t& index = location - m_variables.begin();
-
-    // Construct a CFLOBDD encoding only the proposition variable
-    return aterm_cflobdd(m_level, index);
+    return variable->second;
   }
 
   throw unexpected_character_error(character);

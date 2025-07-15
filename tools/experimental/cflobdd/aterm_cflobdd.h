@@ -28,6 +28,11 @@ namespace
 class aterm_cflobdd: public aterm
 {
 public:
+  /// \brief Default constructor.
+  aterm_cflobdd()
+   : aterm()
+  {}
+
   /// \brief Construct a CFLOBDD term from an aterm.
   /// \param term The aterm to cast
   aterm_cflobdd(const aterm& term)
