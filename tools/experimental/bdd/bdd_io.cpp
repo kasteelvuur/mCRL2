@@ -51,6 +51,8 @@ text_bdd_istream::text_bdd_istream(std::istream& is, const std::vector<std::stri
   {
     m_variables[variable] = mgr.new_var();
   }
+  m_variables["true"] = mgr.t();
+  m_variables["false"] = mgr.f();
 }
 
 text_bdd_istream::text_bdd_istream(std::istream& is, const std::unordered_map<std::string, bdd_function>& variables)

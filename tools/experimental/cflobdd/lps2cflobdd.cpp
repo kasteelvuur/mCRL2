@@ -89,6 +89,8 @@ class lps2bdd_tool: public input_tool
       std::queue<aterm_cflobdd> variable_queue;
       std::vector<size_t> variables_q;
       const size_t& level = std::ceil(std::log2(lpsspec.process().process_parameters().size())) + 1;
+      variables["true"] = aterm_cflobdd(level, true);
+      variables["false"] = aterm_cflobdd(level, false);
       size_t index = 0;
       for (const data::variable& parameter : lpsspec.process().process_parameters())
       {

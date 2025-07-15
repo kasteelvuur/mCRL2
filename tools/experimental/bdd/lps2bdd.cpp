@@ -45,6 +45,8 @@ class lps2bdd_tool: public input_tool
       std::queue<oxidd::bdd_function> variable_queue;
       oxidd::bdd_function variables_q;
       std::vector<std::tuple<oxidd::bdd_function, oxidd::bdd_function>> substitution_list = {};
+      variables["true"] = mgr.t();
+      variables["false"] = mgr.f();
       for (const data::variable& parameter : lpsspec.process().process_parameters())
       {
         const std::string& name = pp(parameter.name());

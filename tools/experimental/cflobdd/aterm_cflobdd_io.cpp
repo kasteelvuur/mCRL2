@@ -46,6 +46,8 @@ text_aterm_cflobdd_istream::text_aterm_cflobdd_istream(std::istream& is, const s
   character = next_char();
 
   // Map the variables to their corresponding CFLOBDDs
+  m_variables["true"] = aterm_cflobdd(m_level, true);
+  m_variables["false"] = aterm_cflobdd(m_level, false);
   const size_t& variable_count = variables.size();
   for (size_t i = 0; i < variable_count; i++)
   {
